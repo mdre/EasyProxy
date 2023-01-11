@@ -1,0 +1,100 @@
+
+plugins {
+    // id('idea')
+    id 'java'
+    id 'application'
+    id "com.dorongold.task-tree" version "1.5"
+}
+
+
+// idea{
+//     module{
+//         downloadJavadoc=true
+//         downloadSources=true
+//     }
+// }
+
+//apply plugin: 'java'
+//sourceCompatibility = '1.8'
+//[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+// 
+// 
+// NetBeans will automatically add "run" and "debug" tasks relying on the
+// "mainClass" property. You may however define the property prior executing
+// tasks by passing a "-PmainClass=<QUALIFIED_CLASS_NAME>" argument.
+//
+// Note however, that you may define your own "run" and "debug" task if you
+// prefer. In this case NetBeans will not add these tasks but you may rely on
+// your own implementation.
+if (!hasProperty('mainClass')) {
+    ext.mainClass = ''
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    // You may define additional repositories, or even remove "mavenCentral()".
+    // Read more about repositories here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
+}
+
+dependencies {
+    // TODO: Add dependencies here ...
+    // You can read more about how to add dependency here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
+    implementation 'org.ow2.asm:asm:9.4'
+    implementation 'org.ow2.asm:asm-util:9.4'
+    testImplementation "junit:junit:[4,)"
+}
+
+
+task runFile(dependsOn: 'classes',type:JavaExec) {
+    
+    jvmArgs += ""
+    if (project.hasProperty('mainClass')) {
+        main = mainClass
+        classpath = sourceSets.main.runtimeClasspath
+        standardOutput = System.out
+        errorOutput = System.err
+        //jvmArgs += "-javaagent:${project.odbogmAgentPath}"
+    }
+    
+}
+
+
+test {
+    dependsOn 
+    jvmArgs '-Djdk.attach.allowAttachSelf=true'
+    
+    outputs.upToDateWhen { false }
+    testLogging {
+        // Make sure output from
+        // standard out or error is shown
+        // in Gradle output.
+        showStandardStreams = true
+ 
+        // Or we use events method:
+        // events 'standard_out', 'standard_error'
+ 
+        // Or set property events:
+        // events = ['standard_out', 'standard_error']
+ 
+        // Instead of string values we can
+        // use enum values:
+        // events org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT,
+        //        org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR,
+    }
+}
+
+
+// ************************************************************************************
+// Imprimir el listado de dependencias
+// ************************************************************************************
+task printDep (){
+    println("Dependencies: ")
+    configurations.compileClasspath.resolvedConfiguration.firstLevelModuleDependencies.each { dep ->
+        println dep
+    }
+}
+
+
