@@ -200,13 +200,9 @@ public class EasyProxy implements Opcodes {
         constructor.visitEnd();
 
         // para cada método de la clase sobreescribirlo y crear el proxy que lo invoque
-        int mi = 0;
         for (Method method : methods) {
-            if (mi<25) {
-                LOGGER.log(Level.FINEST,"\n\n\n\nGenerating proxy method " + method.getName() + "...");
-                this.generateProxy(cw, clazzName, superName, method);
-                mi++;
-            }
+            LOGGER.log(Level.FINEST,"\n\n\n\nGenerating proxy method " + method.getName() + "...");
+            this.generateProxy(cw, clazzName, superName, method);
         }
 
         // Finalizar la clase y escribirla
@@ -388,18 +384,9 @@ public class EasyProxy implements Opcodes {
         LOGGER.log(Level.FINEST,"------------------------------------------------");
         LOGGER.log(Level.FINEST,"\n\n\nprocesando método: " + method.toString());
         LOGGER.log(Level.FINEST,"Type.getDescriptor: "+Type.getMethodDescriptor(method));
-        String parameters = "(";
-        for (Class<?> parType : method.getParameterTypes()) {
-            if (parType.toString().startsWith("class")) {
-                parameters+=parType.toString().substring(6).startsWith("[")?
-                                    parType.toString().substring(6).replace(".", "/"):
-                                    "L"+parType.toString().substring(6).replace(".", "/")+";";
-            } else {
-                parameters+=typesHelper.get(parType.toString()).toAsm;
-            }
-        }
-        parameters+=")";
-        LOGGER.log(Level.FINEST,"parameters: "+parameters);
+        String methodDescriptor = Type.getMethodDescriptor(method);
+        
+        LOGGER.log(Level.FINEST,"methodDescriptor: "+methodDescriptor);
         // calcular el tipo de return type
         TypeRef returnType = typesHelper.get(method.getReturnType().toString());
         if (returnType == null ) {
@@ -423,7 +410,7 @@ public class EasyProxy implements Opcodes {
         LOGGER.log(Level.FINEST,"excepciones: "+Arrays.toString(methodExceptions));
         LOGGER.log(Level.FINEST,"");
         
-        methodVisitor = cw.visitMethod(ACC_PUBLIC, method.getName(), parameters+returnType.toAsm, null, methodExceptions);
+        methodVisitor = cw.visitMethod(ACC_PUBLIC, method.getName(), methodDescriptor, null, methodExceptions);
         methodVisitor.visitCode();
         Label label0 = new Label();
         Label label1 = new Label();
@@ -560,9 +547,9 @@ public class EasyProxy implements Opcodes {
         // crear el método que realmente invoca al super.
         LOGGER.log(Level.FINEST,"\n\nCreando la llamada a super...");
         LOGGER.log(Level.FINEST,"super.method: "+method.getName()+"$proxy" 
-                    + parameters+returnType.toAsm 
+                    + methodDescriptor 
                     + "excepciones: "+ Arrays.toString(methodExceptions));
-        methodVisitor = cw.visitMethod(ACC_PUBLIC, method.getName()+"$proxy", parameters+returnType.toAsm, null, methodExceptions);
+        methodVisitor = cw.visitMethod(ACC_PUBLIC, method.getName()+"$proxy", methodDescriptor, null, methodExceptions);
         methodVisitor.visitCode();
         
         // leer los parámetros
@@ -624,9 +611,9 @@ public class EasyProxy implements Opcodes {
         }
         
 
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, superName, method.getName(), parameters+returnType.toAsm, false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, superName, method.getName(), methodDescriptor, false);
         LOGGER.log(Level.FINEST,"invokespecial: "+superName+" -> "+method.getName() 
-                    + parameters+returnType.toAsm 
+                    + methodDescriptor 
                     );
 
         if (returnType.toAsm.equals("V")) {
