@@ -53,4 +53,14 @@ public class ASMFoo implements Comparable<ASMFoo> {
     public int muchosparam(boolean b1, char c2, byte b3, short s4, int i5, float f6, long l7, double d8, String s9,  Double... D10) {
         return 0;
     }
+
+    public int toOverride(int i) {
+        // método para pobar la llamada directa desde una superclase.
+        return i;
+    }
+
+    public int toOverride2(int i) {
+        // método para probar que el overide bloquea este código
+        return i+10;
+    }
 }

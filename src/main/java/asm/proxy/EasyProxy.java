@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -96,26 +97,32 @@ public class EasyProxy implements Opcodes {
     public Class<?> getClassProxy(Class<?> c, Class<?> interceptor) { // Class<? extends IEasyProxyInterceptor>
         Class current = c;
 
+        System.out.println("\n\n\n================================================================="); 
+        LOGGER.log(Level.FINEST,"Analizando clase: " + c.getName());
+        System.out.println("================================================================="); 
         // analizar la clase y recuperar todos los métodos que se van a implementar.
         LOGGER.log(Level.FINEST, "Class methods:");
-        while (current != Object.class) {
+        // while (current != Object.class) {
             LOGGER.log(Level.FINEST, "Analizando clase: " + current.getCanonicalName());
-            for (Method declaredMethod : c.getDeclaredMethods()) {
-                if (!declaredMethod.isSynthetic()) {
+            for (Method declaredMethod : c.getMethods()) {
+                if (!declaredMethod.isSynthetic() 
+                    && !Modifier.isFinal(declaredMethod.getModifiers()) ) {
                     LOGGER.log(Level.FINEST, "método: " + declaredMethod.getName()
                             + " :  " + declaredMethod.isSynthetic()
-                            + " : " + Arrays.toString(declaredMethod.getParameters()));
+                            + " : " + Arrays.toString(declaredMethod.getParameters())
+                            + " : " + "declaring class: " + declaredMethod.getDeclaringClass().getName()
+                            );
                     methods.add(declaredMethod);
                 } else {
                     LOGGER.log(Level.FINEST, "ignored: " + declaredMethod.getName() + " :  "
                             + declaredMethod.isSynthetic() + " : " + Arrays.toString(declaredMethod.getParameters()));
                 }
             }
-            current = current.getSuperclass();
-        }
+            // current = current.getSuperclass();
+        // }
         LOGGER.log(Level.FINEST, "\n\nInterceptor interface methods");
         // recuperar todos los métodos del interceptor
-        for (Method declaredMethod : interceptor.getDeclaredMethods()) {
+        for (Method declaredMethod : interceptor.getMethods()) {
             if (!declaredMethod.isSynthetic()) {
                 LOGGER.log(Level.FINEST, "proxy método: " + declaredMethod.getName() + " :  "
                         + declaredMethod.isSynthetic() + " : " + Arrays.toString(declaredMethod.getParameters()));
@@ -203,6 +210,12 @@ public class EasyProxy implements Opcodes {
         for (Method method : methods) {
             LOGGER.log(Level.FINEST,"\n\n\n\nGenerating proxy method " + method.getName() + "...");
             this.generateProxy(cw, clazzName, superName, method);
+        }
+
+        // agregar interceptores para cada método de la interface 
+        for (Method method : interceptorMethods) {
+            LOGGER.log(Level.FINEST,"\n\n\n\nGenerating interface interceptor's method " + method.getName() + "...");
+            this.generateInterceptorProxy(cw, clazzName, superName, method);
         }
 
         // Finalizar la clase y escribirla
@@ -633,6 +646,181 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitMaxs(0,0); //methodVisitor.visitMaxs(maxStack, maxLocals);
         methodVisitor.visitEnd();
     }
+
+    private void generateInterceptorProxy(ClassWriter cw, String clazzName, String superName, Method method) {
+        //ParType> [int, 
+        //          class java.lang.Integer, 
+        //          class asm.proxy.ASMFoo, 
+        //          class [Lasm.proxy.ASMFoo;, 
+        //          boolean, 
+        //          float, 
+        //          class [F, 
+        //          class [[Ljava.lang.Float;
+        //         ]
+        // preparar la cadena de parametros
+        LOGGER.log(Level.FINEST,"------------------------------------------------");
+        LOGGER.log(Level.FINEST,"\n\n\nprocesando método de la interface: " + method.toString());
+        LOGGER.log(Level.FINEST,"Type.getDescriptor: "+Type.getMethodDescriptor(method));
+        String methodDescriptor = Type.getMethodDescriptor(method);
+        
+        LOGGER.log(Level.FINEST,"methodDescriptor: "+methodDescriptor);
+        // calcular el tipo de return type
+        TypeRef returnType = typesHelper.get(method.getReturnType().toString());
+        if (returnType == null ) {
+            // si es null quiere decir el tipo de retorno es una clase.
+            returnType = new TypeRef("L"+method.getReturnType().toString().replace("class ","").replace(".", "/")+";",null,null,null,ARETURN,ACONST_NULL);
+        }
+        LOGGER.log(Level.FINEST,"returnType: "+returnType + "  --> "+method.getReturnType().toString());
+        // determinar el cast para el valor devuelto por el interceptor 
+        String returnCastType = "";
+        if (typesHelper.get(method.getReturnType().toString()) == null){
+            returnCastType = method.getReturnType().toString().replace("class ","").replace(".", "/");
+        } else {
+            returnCastType = typesHelper.get(method.getReturnType().toString()).castClass;
+        }
+        LOGGER.log(Level.FINEST,"return cast type: "+returnCastType);
+
+        // procesar las excepciones
+        String[] methodExceptions =  Arrays.stream(method.getGenericExceptionTypes())
+                                            .map(t->t.getTypeName().replace("class ", "").replace(".", "/"))
+                                            .toArray(size->new String[size]);
+        LOGGER.log(Level.FINEST,"excepciones: "+Arrays.toString(methodExceptions));
+        LOGGER.log(Level.FINEST,"");
+        
+        methodVisitor = cw.visitMethod(ACC_PUBLIC, method.getName(), methodDescriptor, null, methodExceptions);
+        methodVisitor.visitCode();
+        Label label0 = new Label();
+        Label label1 = new Label();
+        Label label2 = new Label();
+        methodVisitor.visitTryCatchBlock(label0, label1, label2, "java/lang/Throwable");
+        methodVisitor.visitLabel(label0);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitFieldInsn(GETFIELD, clazzName, PROXYNAME,
+                "Lasm/proxy/IEasyProxyInterceptor;");
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
+        methodVisitor.visitLdcInsn(method.toString());
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
+                "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+        methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");
+        methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "superMethods", "Ljava/util/HashMap;");
+        // Fixme: debería buscar una forma de referenciar que sea mas directa. 
+        methodVisitor.visitLdcInsn(method.toString().replace(superName.replace("/", "."), clazzName.replace("/", ".")).replace("(", "$proxy("));
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
+                "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+        methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");
+        methodVisitor.visitIntInsn(BIPUSH,method.getParameterCount());
+        methodVisitor.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+        
+        // cuando se inserta un Long o Double es necesario saltar un lugar en la pila.
+        int stackOffset = 1;
+        // insetar todas los parametros en el vector. Para cada parámetro es necesario realuzar la conversión correspondiente.
+        for (int i = 0; i < method.getParameterCount(); i++) {
+            methodVisitor.visitInsn(DUP);
+            methodVisitor.visitIntInsn(BIPUSH,i);
+            switch(method.getParameters()[i].getType().toString()) {
+                case "boolean":
+                    methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                    stackOffset += 1;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+                    break;
+                case "char":
+                    methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                    stackOffset += 1;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false);
+                    break;
+                case "byte":
+                    methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                    stackOffset += 1;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;", false);
+                    break;
+                case "short":
+                    methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                    stackOffset += 1;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Short", "valueOf", "(S)Ljava/lang/Short;", false);
+                    break;
+                case "int":
+                    methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                    stackOffset += 1;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+                    break;
+                case "float":
+                    methodVisitor.visitVarInsn(FLOAD, stackOffset);
+                    stackOffset += 1;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+                    break;
+                case "long":
+                    methodVisitor.visitVarInsn(LLOAD, stackOffset);
+                    stackOffset += 2;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+                    break;
+                case "double":
+                    methodVisitor.visitVarInsn(DLOAD, stackOffset);
+                    stackOffset += 2;
+                    methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+                    break;
+                default:
+                    methodVisitor.visitVarInsn(ALOAD, stackOffset);
+                    stackOffset += 1;
+            }
+            methodVisitor.visitInsn(AASTORE);
+        }
+
+        // invocar al interceptor
+        methodVisitor.visitMethodInsn(INVOKEINTERFACE, "asm/proxy/IEasyProxyInterceptor", "intercept",
+                "(Ljava/lang/Object;Ljava/lang/reflect/Method;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;",
+                true);
+        
+        if (returnType.toAsm.equals("V")) {
+            methodVisitor.visitInsn(POP);
+            methodVisitor.visitLabel(label1);
+            Label label3 = new Label();
+            methodVisitor.visitJumpInsn(GOTO, label3);
+            methodVisitor.visitLabel(label2);
+            methodVisitor.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
+            methodVisitor.visitVarInsn(ASTORE, stackOffset);
+            methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
+            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/logging/Logger", "getLogger", "(Ljava/lang/String;)Ljava/util/logging/Logger;", false);
+            methodVisitor.visitFieldInsn(GETSTATIC, "java/util/logging/Level", "SEVERE", "Ljava/util/logging/Level;");
+            methodVisitor.visitInsn(ACONST_NULL);
+            methodVisitor.visitVarInsn(ALOAD, stackOffset);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/logging/Logger", "log", "(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V", false);
+            methodVisitor.visitLabel(label3);
+            methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            methodVisitor.visitInsn(RETURN);
+        } else {
+            // castear el resultado al tipo del retorno del método
+            methodVisitor.visitTypeInsn(CHECKCAST, returnCastType);
+            LOGGER.log(Level.FINEST,"checkcast: "+returnCastType);
+            if (returnType.castMethod!=null) {
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, returnType.castClass, returnType.castMethod, returnType.descrptor, false);
+            }
+            methodVisitor.visitLabel(label1);
+            methodVisitor.visitInsn(returnType.asmReturnValue);
+            methodVisitor.visitLabel(label2);
+            methodVisitor.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
+            methodVisitor.visitVarInsn(ASTORE, stackOffset);
+            methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
+            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/logging/Logger", "getLogger", "(Ljava/lang/String;)Ljava/util/logging/Logger;", false);
+            methodVisitor.visitFieldInsn(GETSTATIC, "java/util/logging/Level", "SEVERE", "Ljava/util/logging/Level;");
+            methodVisitor.visitInsn(ACONST_NULL);
+            methodVisitor.visitVarInsn(ALOAD, stackOffset);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/logging/Logger", "log", "(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V", false);
+            methodVisitor.visitInsn(returnType.defaultValue);
+            methodVisitor.visitInsn(returnType.asmReturnValue);
+        }
+        //int maxLocals = stackOffset+1; // getArgsLength(method.getParameterTypes())+1+(returnType.toAsm.equals("V")?1:0);
+        //int maxStack = maxLocals + 5;
+        methodVisitor.visitMaxs(0,0); //methodVisitor.visitMaxs(maxStack, maxLocals);
+        //LOGGER.log(Level.FINEST,"visitMaxs("+maxStack+", "+maxLocals+")");
+        
+        methodVisitor.visitEnd();
+        
+    }
+
+
 
     /**
      * Get the total length of args in local variable space. Note long and double

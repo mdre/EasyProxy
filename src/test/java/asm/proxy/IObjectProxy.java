@@ -9,5 +9,6 @@ package asm.proxy;
  * @author Marcelo D. Ré {@literal <marcelo.re@gmail.com>}
  */
 public interface IObjectProxy { 
-    public void sayHello(String s);
+    public void ___sayHello(String s);
+    public String ___getLast();
 }
