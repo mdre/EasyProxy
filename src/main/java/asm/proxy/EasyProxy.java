@@ -202,6 +202,28 @@ public class EasyProxy implements Opcodes {
         constructor.visitFieldInsn(Opcodes.PUTFIELD, clazzName, PROXYNAME,
                 Type.getDescriptor(IEasyProxyInterceptor.class));
         
+        if (LOGGER.getLevel() == Level.FINEST) {
+            constructor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            constructor.visitTypeInsn(NEW, "java/lang/StringBuilder");
+            constructor.visitInsn(DUP);
+            constructor.visitLdcInsn("\n\nproxiedMethods: ");
+            constructor.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "(Ljava/lang/String;)V", false);
+            constructor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
+            constructor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false);
+            constructor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+            constructor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+            constructor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            constructor.visitTypeInsn(NEW, "java/lang/StringBuilder");
+            constructor.visitInsn(DUP);
+            constructor.visitLdcInsn("\n\nsuperMethods: ");
+            constructor.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "(Ljava/lang/String;)V", false);
+            constructor.visitFieldInsn(GETSTATIC, clazzName, "superMethods", "Ljava/util/HashMap;");
+            constructor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false);
+            constructor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+            constructor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+        }
+
+
         constructor.visitInsn(Opcodes.RETURN);
         constructor.visitMaxs(0, 0);
         constructor.visitEnd();
@@ -241,40 +263,42 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitInsn(DUP);
         methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
         methodVisitor.visitFieldInsn(PUTSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
-        methodVisitor.visitLdcInsn(Type.getType("L" + superName + ";"));
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethods",
-                "()[Ljava/lang/reflect/Method;", false);
+        methodVisitor.visitLdcInsn(Type.getType("L"+superName+";"));
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethods", "()[Ljava/lang/reflect/Method;", false);
         methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ASTORE, 3);
         methodVisitor.visitInsn(ARRAYLENGTH);
         methodVisitor.visitVarInsn(ISTORE, 2);
         methodVisitor.visitInsn(ICONST_0);
         methodVisitor.visitVarInsn(ISTORE, 1);
-
         Label label0 = new Label();
         methodVisitor.visitJumpInsn(GOTO, label0);
-
         Label label1 = new Label();
         methodVisitor.visitLabel(label1);
-        methodVisitor.visitFrame(Opcodes.F_FULL, 4,
-                new Object[] { Opcodes.TOP, Opcodes.INTEGER, Opcodes.INTEGER, "[Ljava/lang/reflect/Method;" }, 0,
-                new Object[] {});
+        methodVisitor.visitFrame(Opcodes.F_FULL, 4, new Object[] {Opcodes.TOP, Opcodes.INTEGER, Opcodes.INTEGER, "[Ljava/lang/reflect/Method;"}, 0, new Object[] {});
         methodVisitor.visitVarInsn(ALOAD, 3);
         methodVisitor.visitVarInsn(ILOAD, 1);
         methodVisitor.visitInsn(AALOAD);
         methodVisitor.visitVarInsn(ASTORE, 0);
         methodVisitor.visitVarInsn(ALOAD, 0);
+        // FIXME: should remove final methods
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "isSynthetic", "()Z", false);
-
         Label label2 = new Label();
         methodVisitor.visitJumpInsn(IFNE, label2);
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
+        methodVisitor.visitTypeInsn(NEW, "java/lang/StringBuilder");
+        methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "toString", "()Ljava/lang/String;",
-                false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getName", "()Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "(Ljava/lang/String;)V", false);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "put",
-                "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getParameterTypes", "()[Ljava/lang/Class;", false);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/Arrays", "toString", "([Ljava/lang/Object;)Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitInsn(POP);
         methodVisitor.visitLabel(label2);
         methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
@@ -284,14 +308,11 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitVarInsn(ILOAD, 1);
         methodVisitor.visitVarInsn(ILOAD, 2);
         methodVisitor.visitJumpInsn(IF_ICMPLT, label1);
-
-        methodVisitor.visitLdcInsn(Type.getType("L" + clazzName + ";"));
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getInterfaces", "()[Ljava/lang/Class;",
-                false);
+        methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getInterfaces", "()[Ljava/lang/Class;", false);
         methodVisitor.visitInsn(ICONST_0);
         methodVisitor.visitInsn(AALOAD);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethods",
-                "()[Ljava/lang/reflect/Method;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethods", "()[Ljava/lang/reflect/Method;", false);
         methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ASTORE, 3);
         methodVisitor.visitInsn(ARRAYLENGTH);
@@ -313,18 +334,23 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitJumpInsn(IFNE, label5);
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "toString", "()Ljava/lang/String;",
-                false);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
-                "(Ljava/lang/Object;)Ljava/lang/Object;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "toString", "()Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitJumpInsn(IFNONNULL, label5);
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
+        methodVisitor.visitTypeInsn(NEW, "java/lang/StringBuilder");
+        methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "toString", "()Ljava/lang/String;",
-                false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getName", "()Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "(Ljava/lang/String;)V", false);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "put",
-                "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getParameterTypes", "()[Ljava/lang/Class;", false);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/Arrays", "toString", "([Ljava/lang/Object;)Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitInsn(POP);
         methodVisitor.visitLabel(label5);
         methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
@@ -334,9 +360,8 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitVarInsn(ILOAD, 1);
         methodVisitor.visitVarInsn(ILOAD, 2);
         methodVisitor.visitJumpInsn(IF_ICMPLT, label4);
-        methodVisitor.visitLdcInsn(Type.getType("L" + clazzName + ";"));
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethods",
-                "()[Ljava/lang/reflect/Method;", false);
+        methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethods", "()[Ljava/lang/reflect/Method;", false);
         methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ASTORE, 3);
         methodVisitor.visitInsn(ARRAYLENGTH);
@@ -353,20 +378,25 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitInsn(AALOAD);
         methodVisitor.visitVarInsn(ASTORE, 0);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getName", "()Ljava/lang/String;",
-                false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getName", "()Ljava/lang/String;", false);
         methodVisitor.visitLdcInsn("$proxy");
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "endsWith", "(Ljava/lang/String;)Z",
-                false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "endsWith", "(Ljava/lang/String;)Z", false);
         Label label8 = new Label();
         methodVisitor.visitJumpInsn(IFEQ, label8);
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "superMethods", "Ljava/util/HashMap;");
+        methodVisitor.visitTypeInsn(NEW, "java/lang/StringBuilder");
+        methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "toString", "()Ljava/lang/String;",
-                false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getName", "()Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "(Ljava/lang/String;)V", false);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "put",
-                "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "getParameterTypes", "()[Ljava/lang/Class;", false);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/Arrays", "toString", "([Ljava/lang/Object;)Ljava/lang/String;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitInsn(POP);
         methodVisitor.visitLabel(label8);
         methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
@@ -376,10 +406,8 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitVarInsn(ILOAD, 1);
         methodVisitor.visitVarInsn(ILOAD, 2);
         methodVisitor.visitJumpInsn(IF_ICMPLT, label7);
-
-        
         methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(0,0); //methodVisitor.visitMaxs(4, 5);
+        methodVisitor.visitMaxs(4, 4);
         methodVisitor.visitEnd();
     }
 
@@ -435,19 +463,19 @@ public class EasyProxy implements Opcodes {
                 "Lasm/proxy/IEasyProxyInterceptor;");
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
-        methodVisitor.visitLdcInsn(method.toString());
+        methodVisitor.visitLdcInsn(method.getName()+Arrays.toString(method.getParameterTypes()));
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
                 "(Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "superMethods", "Ljava/util/HashMap;");
         // Fixme: debería buscar una forma de referenciar que sea mas directa. 
-        methodVisitor.visitLdcInsn(method.toString().replace(superName.replace("/", "."), clazzName.replace("/", ".")).replace("(", "$proxy("));
+        methodVisitor.visitLdcInsn(method.getName()+"$proxy"+Arrays.toString(method.getParameterTypes()));
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
                 "(Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");
         methodVisitor.visitIntInsn(BIPUSH,method.getParameterCount());
         methodVisitor.visitTypeInsn(ANEWARRAY, "java/lang/Object");
-        
+    
         // cuando se inserta un Long o Double es necesario saltar un lugar en la pila.
         int stackOffset = 1;
         // insetar todas los parametros en el vector. Para cada parámetro es necesario realuzar la conversión correspondiente.
@@ -699,13 +727,13 @@ public class EasyProxy implements Opcodes {
                 "Lasm/proxy/IEasyProxyInterceptor;");
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "proxiedMethods", "Ljava/util/HashMap;");
-        methodVisitor.visitLdcInsn(method.toString());
+        methodVisitor.visitLdcInsn(method.getName()+Arrays.toString(method.getParameterTypes()));
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
                 "(Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");
         methodVisitor.visitFieldInsn(GETSTATIC, clazzName, "superMethods", "Ljava/util/HashMap;");
-        // Fixme: debería buscar una forma de referenciar que sea mas directa. 
-        methodVisitor.visitLdcInsn(method.toString().replace(superName.replace("/", "."), clazzName.replace("/", ".")).replace("(", "$proxy("));
+        // Fixme: acá se podría pasar null porque se corresponde a un método de la interface
+        methodVisitor.visitLdcInsn(method.getName()+"$proxy"+Arrays.toString(method.getParameterTypes()));
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
                 "(Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");

@@ -41,7 +41,7 @@ public class ASMFoo implements Comparable<ASMFoo> {
     public boolean unparam(int i) {
         return true;
     }
-
+    
     public boolean dosparam(int i, Integer II) {
         return true;
     }

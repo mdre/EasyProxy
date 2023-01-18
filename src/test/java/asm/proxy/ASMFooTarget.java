@@ -31,25 +31,25 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         // recupear los métodos de la superclass
         for (java.lang.reflect.Method method : ASMFoo.class.getMethods()) {
             if (!method.isSynthetic()) {
-                proxiedMethods.put(method.toString(), method);
-                System.out.println(">> "+method.toString()
-                                   + "\n  - ParType> "+ Arrays.toString(method.getParameterTypes())
-                                   + "\n  - parametes "+ Arrays.toString(method.getParameters())
-                                   + "\n  - exceptions "+ Arrays.toString(method.getGenericExceptionTypes())
-                                   + "\n  - exceptions "+ Arrays.toString(method.getExceptionTypes())
-                                   + "\n  - return type "+ method.getReturnType().getName()
-                                   + "\n"
+                proxiedMethods.put(method.getName()+Arrays.toString(method.getParameterTypes()), method);
+                // System.out.println(">> "+method.toString()
+                //                    + "\n  - ParType> "+ Arrays.toString(method.getParameterTypes())
+                //                    + "\n  - parametes "+ Arrays.toString(method.getParameters())
+                //                    + "\n  - exceptions "+ Arrays.toString(method.getGenericExceptionTypes())
+                //                    + "\n  - exceptions "+ Arrays.toString(method.getExceptionTypes())
+                //                    + "\n  - return type "+ method.getReturnType().getName()
+                //                    + "\n"
 
-                );
-                for (int i = 0; i < method.getParameterCount(); i++) {
-                    System.out.println(" >>> " +  method.getParameters()[i].getType().toString() );
-                }
+                // );
+                // for (int i = 0; i < method.getParameterCount(); i++) {
+                //     System.out.println(" >>> " +  method.getParameters()[i].getType().toString() );
+                // }
             }
         }
         
         for (java.lang.reflect.Method method : ASMFooTarget.class.getInterfaces()[0].getMethods()) {
             if (!method.isSynthetic() && proxiedMethods.get(method.toString())==null) {
-                proxiedMethods.put(method.toString(), method);
+                proxiedMethods.put(method.getName()+Arrays.toString(method.getParameterTypes()), method);
                 // System.out.println(">> "+method.toString()+
                 //                    "  - anotations: "+ Arrays.toString(method.getAnnotations())
                 // );
@@ -60,7 +60,7 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         // referenciar los métodos proxy
         for (java.lang.reflect.Method method : ASMFooTarget.class.getMethods()) {
             if (method.getName().endsWith("$proxy")) {
-                superMethods.put(method.toString(), method);
+                superMethods.put(method.getName()+Arrays.toString(method.getParameterTypes()), method);
                 // System.out.println(">> "+method.toString()+
                 //                    "  - anotations: "+ Arrays.toString(method.getAnnotations())
                 // );
@@ -75,6 +75,11 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         System.out.println("inicializando... ");
         this.epi = epi;
         
+        System.out.println("\n\nproxiedMethods: "+proxiedMethods);
+        System.out.println("\n\nsuperMethods: "+superMethods);
+
+
+
         System.out.println("fin constructor.");
     }
     
@@ -130,7 +135,7 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
     }
 
     @Override
-    public void sayHello(String s) {
+    public void ___sayHello(String s) {
         // TODO Auto-generated method stub
         try {
             epi.intercept(this,
@@ -140,6 +145,12 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         } catch (Throwable ex) {
             Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    @Override
+    public String ___getLast() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
