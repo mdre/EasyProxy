@@ -9,6 +9,9 @@ public class ASMFooEx extends ASMFoo {
         return super.toOverride(i);
     }
 
+    /** 
+     * sobreescribe completamente el método anterior y cambia el varlor de retorno.
+     */
     @Override
     public int toOverride2(int i) {
         return i;

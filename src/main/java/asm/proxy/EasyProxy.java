@@ -7,6 +7,7 @@ package asm.proxy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -52,6 +53,9 @@ public class EasyProxy implements Opcodes {
 
     Map<String,TypeRef> typesHelper = new HashMap<>();
     // Map<String,String> checkCast = new HashMap<>();
+
+    private static Map<String,Class<?>> typesCache = new HashMap<>();
+
     public EasyProxy() {
         typesHelper.put("boolean",new TypeRef("Z", "java/lang/Boolean", "booleanValue", "()Z",IRETURN, ICONST_0));
         typesHelper.put("char",new TypeRef("C", "java/lang/Character", "charValue", "()C",IRETURN, ICONST_0));
@@ -65,16 +69,6 @@ public class EasyProxy implements Opcodes {
         // no es un tipo pero ayuda en la conversión
         typesHelper.put("void",new TypeRef("V", null, null, null,0,0));
 
-        // checkCast.put("boolean","java/lang/Boolean");
-        // checkCast.put("char","java/lang/Character");
-        // checkCast.put("byte","java/lang/Byte");
-        // checkCast.put("short","java/lang/Short");
-        // checkCast.put("int","java/lang/Integer");
-        // checkCast.put("float","java/lang/Float");
-        // checkCast.put("long","java/lang/Long");
-        // checkCast.put("double","java/lang/Double");
-        // checkCast.put("String","java/lang/String");
-
     }
 
     public String getClazzSuffix() {
@@ -86,6 +80,24 @@ public class EasyProxy implements Opcodes {
         return this;
     }
 
+    /** 
+     * Generate a new class that proxies all the methods of the given class
+     */
+    public Class<?> getProxyClass(Class<?> c, Class<?> interceptor) throws XDuplicatedProxyClass { 
+        // primero buscar si la clase ya ha sido referenciada.
+        Class<?> clazz = typesCache.get(c.getCanonicalName());
+        if (clazz == null) {
+            // no se encontró la clase y hay que generar el proxy
+            clazz = getProxyClassInstrumentator(clazz, interceptor);
+            typesCache.put(c.getCanonicalName(), clazz);
+        } else {
+            // verificar que la clase sea instancia del inteceptor.
+            if (!clazz.isAssignableFrom(interceptor) )
+                throw new XDuplicatedProxyClass();
+        }
+
+        return clazz;
+    }
     /**
      * Request the class to be extended and the interface to be implemented.
      *
@@ -94,8 +106,8 @@ public class EasyProxy implements Opcodes {
      *
      * @return
      */
-    public Class<?> getClassProxy(Class<?> c, Class<?> interceptor) { // Class<? extends IEasyProxyInterceptor>
-        Class current = c;
+    private Class<?> getProxyClassInstrumentator(Class<?> c, Class<?> interceptor) { // Class<? extends IEasyProxyInterceptor>
+        Class<?> current = c;
 
         System.out.println("\n\n\n================================================================="); 
         LOGGER.log(Level.FINEST,"Analizando clase: " + c.getName());
@@ -244,7 +256,6 @@ public class EasyProxy implements Opcodes {
         cw.visitEnd();
         byte[] data = cw.toByteArray();
         writeToFile(clazzName, data);
-
         DynamicClassLoader dcl = new DynamicClassLoader();
         Class<?> r = dcl.defineClass(clazzName.replace("/", "."), data);
         return r;

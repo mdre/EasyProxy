@@ -56,11 +56,13 @@ public class ASMFoo implements Comparable<ASMFoo> {
 
     public int toOverride(int i) {
         // método para pobar la llamada directa desde una superclase.
+        System.out.println("toOverride: " + i);
         return i;
     }
 
     public int toOverride2(int i) {
         // método para probar que el overide bloquea este código
+        System.out.println("Override2: "+i + " --> " + (i+10));
         return i+10;
     }
 }

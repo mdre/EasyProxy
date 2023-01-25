@@ -45,7 +45,7 @@ public class ProxyTest {
             System.out.println("\n\n\n\ntestASM");
             EasyProxy ep = new EasyProxy();
             ObjectProxyImpl op = new ObjectProxyImpl();
-            Class<ASMFoo> ft = (Class<ASMFoo>)ep.getClassProxy(ASMFoo.class, IObjectProxy.class);
+            Class<ASMFoo> ft = (Class<ASMFoo>)ep.getProxyClass(ASMFoo.class, IObjectProxy.class);
             System.out.println("clase generada!!");
             System.out.println("");
             System.out.println("");
@@ -73,7 +73,7 @@ public class ProxyTest {
             System.out.println("\n\n\n\ntest class Extentions");
             EasyProxy ep = new EasyProxy();
             ObjectProxyImpl op = new ObjectProxyImpl();
-            Class<ASMFooEx> ft = (Class<ASMFooEx>)ep.getClassProxy(ASMFooEx.class, IObjectProxy.class);
+            Class<ASMFooEx> ft = (Class<ASMFooEx>)ep.getProxyClass(ASMFooEx.class, IObjectProxy.class);
             System.out.println("clase generada!!");
             System.out.println("");
             System.out.println("");
@@ -91,7 +91,8 @@ public class ProxyTest {
 
             assertTrue(fti.toOverride(100) == 100);
             
-            assertTrue(fti.toOverride2(100) == 100);
+            // sobreescribe completamente el método anterior y cambia el varlor de retorno.
+            assertTrue( fti.toOverride2(100) == 100);
 
         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
