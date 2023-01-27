@@ -62,7 +62,7 @@ public class ProxyTest {
             String result = ((IObjectProxy)fti).___getLast();
             assertTrue(result == "EasyProxy");
 
-        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | XDuplicatedProxyClass ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -94,7 +94,7 @@ public class ProxyTest {
             // sobreescribe completamente el método anterior y cambia el varlor de retorno.
             assertTrue( fti.toOverride2(100) == 100);
 
-        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | XDuplicatedProxyClass ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
