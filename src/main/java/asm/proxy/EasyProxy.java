@@ -80,6 +80,9 @@ public class EasyProxy implements Opcodes {
         return this;
     }
 
+    public Class<?> getProxyClass(Class<?> c) throws XDuplicatedProxyClass { 
+        return getProxyClass(c, null);
+    }
     /** 
      * Generate a new class that proxies all the methods of the given class
      */
@@ -88,7 +91,7 @@ public class EasyProxy implements Opcodes {
         Class<?> clazz = typesCache.get(c.getCanonicalName());
         if (clazz == null) {
             // no se encontró la clase y hay que generar el proxy
-            clazz = getProxyClassInstrumentator(clazz, interceptor);
+            clazz = getProxyClassInstrumentator(c, interceptor);
             typesCache.put(c.getCanonicalName(), clazz);
         } else {
             // verificar que la clase sea instancia del inteceptor.
@@ -134,20 +137,23 @@ public class EasyProxy implements Opcodes {
         // }
         LOGGER.log(Level.FINEST, "\n\nInterceptor interface methods");
         // recuperar todos los métodos del interceptor
-        for (Method declaredMethod : interceptor.getMethods()) {
-            if (!declaredMethod.isSynthetic()) {
-                LOGGER.log(Level.FINEST, "proxy método: " + declaredMethod.getName() + " :  "
-                        + declaredMethod.isSynthetic() + " : " + Arrays.toString(declaredMethod.getParameters()));
-                interceptorMethods.add(declaredMethod);
-            } else {
-                LOGGER.log(Level.FINEST, "ignored: " + declaredMethod.getName() + " :  " + declaredMethod.isSynthetic()
-                        + " : " + Arrays.toString(declaredMethod.getParameters()));
+        String proxyInterface = "";
+        if (interceptor!=null) {
+            for (Method declaredMethod : interceptor.getMethods()) {
+                if (!declaredMethod.isSynthetic()) {
+                    LOGGER.log(Level.FINEST, "proxy método: " + declaredMethod.getName() + " :  "
+                            + declaredMethod.isSynthetic() + " : " + Arrays.toString(declaredMethod.getParameters()));
+                    interceptorMethods.add(declaredMethod);
+                } else {
+                    LOGGER.log(Level.FINEST, "ignored: " + declaredMethod.getName() + " :  " + declaredMethod.isSynthetic()
+                            + " : " + Arrays.toString(declaredMethod.getParameters()));
+                }
             }
+            proxyInterface = interceptor.getCanonicalName().replace(".", "/");
         }
 
         String clazzName = c.getCanonicalName().replace(".", "/") + clazzSuffix;
         String superName = c.getCanonicalName().replace(".", "/");
-        String proxyInterface = interceptor.getCanonicalName().replace(".", "/");
         LOGGER.log(Level.FINEST, "\n\n\nclazzName: " + clazzName);
         LOGGER.log(Level.FINEST, "super: " + superName);
         LOGGER.log(Level.FINEST, "proxy interface: " + proxyInterface);
@@ -158,7 +164,7 @@ public class EasyProxy implements Opcodes {
                 clazzName, // package and name
                 null, // signature (null means not generic)
                 superName, // superclass
-                new String[] { proxyInterface }); // interfaces
+                proxyInterface.isEmpty()?null:new String[] { proxyInterface }); // interfaces
 
         // agregar el campo interceptor
         cw.visitField(Opcodes.ACC_PRIVATE,
