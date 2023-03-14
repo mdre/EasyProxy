@@ -85,11 +85,11 @@ repositories {
 }
 
 dependencies {
-    // TODO: Add dependencies here ...
     // You can read more about how to add dependency here:
     //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
     implementation 'org.ow2.asm:asm:9.4'
     implementation 'org.ow2.asm:asm-util:9.4'
+    implementation 'org.burningwave:core:12.62.5'
     testImplementation "junit:junit:[4,)"
 }
 
@@ -110,7 +110,7 @@ task runFile(dependsOn: 'classes',type:JavaExec) {
 
 test {
     dependsOn 
-    jvmArgs '-Djdk.attach.allowAttachSelf=true'
+    jvmArgs '-Djdk.attach.allowAttachSelf=true --add-opens java.base/java.lang=ALL-UNNAMED'
     
     outputs.upToDateWhen { false }
     testLogging {
@@ -232,6 +232,3 @@ javadoc {
         options.addBooleanOption('html5', true)
     }
 }
-
-
-

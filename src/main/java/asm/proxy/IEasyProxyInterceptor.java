@@ -4,13 +4,13 @@
  */
 package asm.proxy;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 
 /**
  *
  * @author Marcelo D. Ré {@literal <marcelo.re@gmail.com>}
  */
 public interface IEasyProxyInterceptor {
-    public Object intercept(Object target, Method method, Method superMethod, Object... args)  throws Throwable ;
+    public Object intercept(Object target, Method method, Method superMethod, Object... args)  throws  Throwable ;
 }

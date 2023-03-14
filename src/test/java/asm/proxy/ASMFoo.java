@@ -11,8 +11,8 @@ import java.io.IOException;
  *
  * @author Marcelo D. Ré {@literal <marcelo.re@gmail.com>}
  */
-public class ASMFoo implements Comparable<ASMFoo> {
-
+public class ASMFoo implements Comparable<ASMFoo>  {
+    
     String s;
     
     public ASMFoo() {
@@ -64,5 +64,35 @@ public class ASMFoo implements Comparable<ASMFoo> {
         // método para probar que el overide bloquea este código
         System.out.println("Override2: "+i + " --> " + (i+10));
         return i+10;
+    }
+    
+    public void testRuntimeException() {
+        System.out.println("Lanzar la excepción");
+        throw new RuntimeExceptionTest("Test de exceptions");
+    }
+
+    public void testException(int i) throws ExceptionTest, ExceptionTest2 {
+        if (i == 1) { 
+            throw new ExceptionTest("Exception test!!");
+        } else {
+            throw new ExceptionTest2("Exception test 2!!");
+        }
+    }
+
+
+    public int testRuntimeExceptionWithReturn() {
+        System.out.println("Lanzar la excepción");
+        throw new RuntimeExceptionTest("Test de exceptions");
+    }
+
+    public int testExceptionWithReturn(int i) throws ExceptionTest, ExceptionTest2, ExceptionTest3 {
+        if (i == 1) { 
+            throw new ExceptionTest("Exception test!!");
+        } else if (i==2){
+            throw new ExceptionTest2("Exception test 2!!");
+        } else if (i==3){
+            throw new ExceptionTest3("Exception test 3!!");
+        }
+        return 42;
     }
 }

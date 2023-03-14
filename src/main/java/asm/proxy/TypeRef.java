@@ -13,6 +13,8 @@ public class TypeRef {
     // default value
     public int asmReturnValue;
     public int defaultValue;
+    public int opcode;
+    
     public TypeRef(String toAsm, String castClass, String castMethod, String descrptor, int asmReturnValue, int defaultValue) {
         this.toAsm = toAsm;
         this.castClass = castClass;

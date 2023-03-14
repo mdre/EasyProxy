@@ -5,6 +5,7 @@
 
 package asm.proxy;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -25,7 +26,7 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
     String lastValue;
 
     @Override
-    public Object intercept(Object target, Method method, Method superMethod, Object... args) {
+    public Object intercept(Object target, Method method, Method superMethod, Object... args) throws Throwable {
         System.out.println("Intercepted: "+method.toString());
         System.out.println("superMethod: "+superMethod);
         System.out.println("anotations: "+Arrays.toString(method.getAnnotations()));
@@ -38,13 +39,19 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
             case "___getLast":
                 result = this.___getLast();
                 break;
+                case "___getInterface":
+                result = this;
+                break;
             default:
-                try {
+                // try {
                     result = superMethod.invoke(target, args);
-                } catch (Throwable e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                // } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                //     // TODO Auto-generated catch block
+                //     e.printStackTrace();
+                // } catch (RuntimeException rte) {
+                //     System.out.println("object proxy implementation catch rte");
+                //     throw rte;
+                // }
         }
         return result;
     }
@@ -60,4 +67,9 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
         return lastValue;
     }
     
+    @Override
+    public IObjectProxy ___getInterface() {
+        System.out.println("test interface as parameter");
+        return this;
+    }
 }

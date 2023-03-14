@@ -11,4 +11,5 @@ package asm.proxy;
 public interface IObjectProxy { 
     public void ___sayHello(String s);
     public String ___getLast();
+    public IObjectProxy ___getInterface();
 }
