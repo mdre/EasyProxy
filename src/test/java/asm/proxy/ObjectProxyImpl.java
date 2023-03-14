@@ -72,4 +72,13 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
         System.out.println("test interface as parameter");
         return this;
     }
+
+    @Override
+    public void ___testException(int i) throws ExceptionTest, ExceptionTest2 {
+        if (i == 1) { 
+            throw new ExceptionTest("Exception test!!");
+        } else {
+            throw new ExceptionTest2("Exception test 2!!");
+        }
+    }
 }

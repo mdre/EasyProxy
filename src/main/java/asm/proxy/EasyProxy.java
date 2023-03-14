@@ -909,6 +909,7 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
         methodVisitor.visitVarInsn(ASTORE, stackOffset);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
+        
         //desempaquetar los runtime exceptions
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
         methodVisitor.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
@@ -938,7 +939,7 @@ public class EasyProxy implements Opcodes {
             methodVisitor.visitJumpInsn(IFEQ, labelElse);
             
             methodVisitor.visitVarInsn(ALOAD, stackOffset);
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/InvocationTargetException", "getCause", "()Ljava/lang/Throwable;", false);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
             methodVisitor.visitTypeInsn(CHECKCAST, ex);
             methodVisitor.visitInsn(ATHROW);
 

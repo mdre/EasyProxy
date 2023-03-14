@@ -1,6 +1,5 @@
 package asm.proxy;
 
-import java.io.IOException;
 
 public class ASMFooEx extends ASMFoo {
 
@@ -9,7 +8,7 @@ public class ASMFooEx extends ASMFoo {
         return super.toOverride(i);
     }
 
-    /** 
+    /**
      * sobreescribe completamente el método anterior y cambia el varlor de retorno.
      */
     @Override

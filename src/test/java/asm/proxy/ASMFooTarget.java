@@ -114,6 +114,12 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         // TODO Auto-generated method stub
         return null;
     }
+
+    @Override
+    public void ___testException(int i) throws ExceptionTest, ExceptionTest2 {
+        // TODO Auto-generated method stub
+        
+    }
     //=================================================================
     
     @Override

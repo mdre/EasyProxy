@@ -263,6 +263,9 @@ public class ProxyTest {
             
             assertThrows(RuntimeExceptionTest.class,()->ft.testRuntimeException());
 
+            IObjectProxy iop = (IObjectProxy)ft;
+            assertThrows(ExceptionTest.class,()->ft.testException(1));
+
         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | XDuplicatedProxyClass ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception e) {
