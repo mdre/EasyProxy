@@ -11,6 +11,8 @@ import java.util.logging.Logger;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.junit.Test;
 
 /**
@@ -63,13 +65,25 @@ public class ProxyTest {
             System.out.println("\n\n\n\nERROR - ACA ESTÁ MAL!");
             e.printStackTrace();
         }
+
+        System.out.println("\n\n\nTest Interface Exception");
+        try {
+            asmt.___testException(1);
+        } catch (ExceptionTest e) {
+            System.out.println("Excepción capturada!! ");
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("\n\n\n\nERROR - ACA ESTÁ MAL!");
+            e.printStackTrace();
+        }
     }
 
     @Test
     public void testASM() {
+        System.out.println("\n\n\n\n");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
-        System.out.println("\n\n\n\ntestASM");
+        System.out.println("testASM");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
         
@@ -101,9 +115,10 @@ public class ProxyTest {
     
     @Test
     public void testEx() {
+        System.out.println("\n\n\n\n");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
-        System.out.println("\n\n\n\ntest class Extentions");
+        System.out.println("test class Extentions");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
         
@@ -142,9 +157,10 @@ public class ProxyTest {
 
     @Test
     public void testCache() {
+        System.out.println("\n\n\n\n");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
-        System.out.println("\n\n\n\ntest class Cache");
+        System.out.println("test class Cache");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
         
@@ -204,9 +220,10 @@ public class ProxyTest {
     
     @Test
     public void testInterfaces() {
+        System.out.println("\n\n\n\n");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
-        System.out.println("\n\n\n\ntest interfaces");
+        System.out.println("test interfaces");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
         
@@ -240,9 +257,10 @@ public class ProxyTest {
 
     @Test
     public void testExceptions() {
+        System.out.println("\n\n\n\n");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
-        System.out.println("\n\n\n\ntest exceptions");
+        System.out.println("test exceptions");
         System.out.println("=================================================================");
         System.out.println("=================================================================");
         
@@ -264,7 +282,7 @@ public class ProxyTest {
             assertThrows(RuntimeExceptionTest.class,()->ft.testRuntimeException());
 
             IObjectProxy iop = (IObjectProxy)ft;
-            assertThrows(ExceptionTest.class,()->ft.testException(1));
+            assertThrows(ExceptionTest.class,()->iop.___testException(1));
 
         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | XDuplicatedProxyClass ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -274,6 +292,37 @@ public class ProxyTest {
         }
     }
     
+    @Test
+    public void testInterfacesException() {
+        System.out.println("\n\n\n\n");
+        System.out.println("=================================================================");
+        System.out.println("=================================================================");
+        System.out.println("test Interfaces exceptions");
+        System.out.println("=================================================================");
+        System.out.println("=================================================================");
+        
+        try {
+            //ASMFooEx asm = new ASMFooEx();
+
+            ObjectProxyImpl op = new ObjectProxyImpl();
+
+            TypesCache tc = new TypesCache();
+
+            ASMFooEx ft = tc.findOrInsert(ASMFooEx.class, IObjectProxy.class, ()->{
+                                    Class clazz = new EasyProxy().getProxyClass(ASMFooEx.class, IObjectProxy.class);
+                                    return clazz;
+                                }).newInstance(op);
+            System.out.println("clase generada!!");
+
+            IObjectProxy iop = (IObjectProxy)ft;
+            assertThrows(ExceptionTest.class,()-> iop.___testException(1));
+            assertThrows(ExceptionTest2.class,()-> iop.___testException(2));
+        } catch (Throwable ex) {
+            fail();
+            ex.printStackTrace();
+        }
+
+    }
     
 
     public static void main(String[] args) {

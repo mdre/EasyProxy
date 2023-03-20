@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -33,8 +34,9 @@ public class EasyProxy implements Opcodes {
 
     static {
         if (LOGGER.getLevel() == null) {
-            LOGGER.setLevel(Level.FINEST);
+            LOGGER.setLevel(Level.INFO);
         }
+        
         org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
     }
 
@@ -910,13 +912,11 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitVarInsn(ASTORE, stackOffset);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
         
-        //desempaquetar los runtime exceptions
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+        // runtime exceptions
         methodVisitor.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
         Label labelElse = new Label();
         methodVisitor.visitJumpInsn(IFEQ, labelElse);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
         methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/RuntimeException");
         methodVisitor.visitInsn(ATHROW);
         
@@ -933,13 +933,11 @@ public class EasyProxy implements Opcodes {
                 methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
             }
             methodVisitor.visitVarInsn(ALOAD, stackOffset);
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
             methodVisitor.visitTypeInsn(INSTANCEOF, ex);
             
             methodVisitor.visitJumpInsn(IFEQ, labelElse);
             
             methodVisitor.visitVarInsn(ALOAD, stackOffset);
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
             methodVisitor.visitTypeInsn(CHECKCAST, ex);
             methodVisitor.visitInsn(ATHROW);
 
@@ -954,7 +952,7 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitInsn(ACONST_NULL);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/logging/Logger", "log", "(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V", false);
-
+        
         methodVisitor.visitLabel(lblReturn);
         methodVisitor.visitFrame(Opcodes.F_CHOP, 1, null, 0, null);
         if (returnType.toAsm.equals("V")) {

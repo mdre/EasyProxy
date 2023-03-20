@@ -39,8 +39,19 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
             case "___getLast":
                 result = this.___getLast();
                 break;
-                case "___getInterface":
+            case "___getInterface":
                 result = this;
+                break;
+            case "___testException":
+                // try {
+                    this.___testException((int)args[0]);
+                // } catch (Throwable ex) {
+                //     System.out.println("catch "+ex.toString());
+                //     if (ex instanceof ExceptionTest) {
+                //         System.out.println("---> volver a lanzar --->");
+                //         throw (ExceptionTest)ex;
+                //     }
+                // }
                 break;
             default:
                 // try {

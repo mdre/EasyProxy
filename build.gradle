@@ -18,6 +18,9 @@ plugins {
 def sonatypeUsername = credentials.sonatypeUser
 def sonatypePassword = credentials.sonatypePassword
 
+// para publicar:
+//  gradle publishToSonatype closeAndReleaseSonatypeStagingRepository sabn
+
 
 // desactivo la generación de javadoc en los proyectos que tengan la tarea
 javadoc.enabled = true

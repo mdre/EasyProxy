@@ -117,7 +117,24 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
 
     @Override
     public void ___testException(int i) throws ExceptionTest, ExceptionTest2 {
-        // TODO Auto-generated method stub
+        try {
+            epi.intercept(this,
+                          proxiedMethods.get("___testException[int]"),
+                          null,
+                          i);
+        } catch (Throwable ex) {
+            if (ex instanceof RuntimeException) 
+                throw (RuntimeException)ex;
+            else if (ex instanceof ExceptionTest) 
+                throw (ExceptionTest)ex;
+            
+            else if (ex instanceof ExceptionTest2)
+                throw (ExceptionTest2)ex;
+            else  {
+                System.out.println(" --- ERROR ---");
+               Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } 
         
     }
     //=================================================================
