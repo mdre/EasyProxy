@@ -6,8 +6,11 @@
 package asm.proxy;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -23,7 +26,7 @@ public class ProxyTest {
     private final static Logger LOGGER = Logger.getLogger(ProxyTest.class.getName());
     static {
         if (LOGGER.getLevel() == null) {
-            LOGGER.setLevel(Level.FINEST);
+            LOGGER.setLevel(Level.INFO);
         }
     }
     
@@ -34,6 +37,7 @@ public class ProxyTest {
         // asmt = new ASMFooTarget(op);
         // asmt.setS("test 2");
         
+
         try {
             asmt.testRuntimeException();
         } catch (Throwable ex) {
@@ -76,6 +80,13 @@ public class ProxyTest {
             System.out.println("\n\n\n\nERROR - ACA ESTÁ MAL!");
             e.printStackTrace();
         }
+
+        try {
+            asmt.___testRuntimeException();
+        } catch (RuntimeExceptionTest e) {
+            System.out.println("Runtime Excepción capturada!! ");
+            e.printStackTrace();
+        } 
     }
 
     @Test
@@ -89,14 +100,15 @@ public class ProxyTest {
         
         try {
             
-            EasyProxy ep = new EasyProxy();
+            EasyProxy ep = new EasyProxy().setOutputDirectory("/tmp/asm");
             ObjectProxyImpl op = new ObjectProxyImpl();
             Class<ASMFoo> ft = (Class<ASMFoo>)ep.getProxyClass(ASMFoo.class, IObjectProxy.class);
             System.out.println("clase generada!!");
             System.out.println("");
             System.out.println("");
             System.out.println("crear una instancia...");
-            ASMFoo  fti = ft.getConstructor(IEasyProxyInterceptor.class).newInstance(op);
+            ASMFoo  fti = ft.getConstructor(IEasyProxyInterceptor.class)
+                                .newInstance(op);
 
             // Field fsuper = fti.getClass().getField("superMethods");
             // HashMap<String,Method> superMethods = (HashMap<String, Method>) fsuper.get(null);
@@ -107,6 +119,10 @@ public class ProxyTest {
             ((IObjectProxy)fti).___sayHello("ASM");
             String result = ((IObjectProxy)fti).___getLast();
             assertTrue(result == "EasyProxy");
+
+
+            // verioficar que las anotación existan
+            assertEquals("Annotation Present", fti.testAnnotation());
 
         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -128,7 +144,7 @@ public class ProxyTest {
             ASMFooEx asm = new ASMFooEx();
 
             ObjectProxyImpl op = new ObjectProxyImpl();
-            Class<ASMFooEx> ft = new EasyProxy().getProxyClass(ASMFooEx.class, IObjectProxy.class);
+            Class<ASMFooEx> ft = new EasyProxy().setOutputDirectory("/tmp/asm").getProxyClass(ASMFooEx.class, IObjectProxy.class);
             System.out.println("clase generada!!");
             System.out.println("");
             System.out.println("");
@@ -149,6 +165,38 @@ public class ProxyTest {
             // sobreescribe completamente el método anterior y cambia el varlor de retorno.
             assertTrue( fti.toOverride2(100) == 100);
 
+        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+            Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+
+    @Test
+    public void testExEx() {
+        System.out.println("\n\n\n\n");
+        System.out.println("=================================================================");
+        System.out.println("=================================================================");
+        System.out.println("test class Extentions on a Extentions with a non-null constructor");
+        System.out.println("=================================================================");
+        System.out.println("=================================================================");
+        
+        try {
+            // precargar la clase para que el classloader tenga una referencia.
+            // esto es para verificar que se inserte en un classloader exsitente.
+            // ASMFooEx asm = new ASMFooEx();
+
+            ObjectProxyImpl op = new ObjectProxyImpl();
+            Class<ASMFooExEx> ft = new EasyProxy()
+                                        .setOutputDirectory("/tmp/asm")
+                                        .getProxyClass(ASMFooExEx.class, IObjectProxy.class);
+            System.out.println("clase generada!!");
+            System.out.println("");
+            System.out.println("");
+            System.out.println("crear una instancia...");
+            ASMFooExEx  fti = ft.getConstructor(IEasyProxyInterceptor.class).newInstance(op);
+
+            assertEquals("ASMFooExEx",fti.s);
+            assertEquals(2, fti.i);
         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -315,6 +363,7 @@ public class ProxyTest {
             System.out.println("clase generada!!");
 
             IObjectProxy iop = (IObjectProxy)ft;
+            assertThrows(RuntimeExceptionTest.class,()-> iop.___testRuntimeException());
             assertThrows(ExceptionTest.class,()-> iop.___testException(1));
             assertThrows(ExceptionTest2.class,()-> iop.___testException(2));
         } catch (Throwable ex) {
@@ -325,12 +374,44 @@ public class ProxyTest {
     }
     
 
+    // @Test
+    // public void testEqual_y_hashCode() {
+    //     System.out.println("\n\n\n\n");
+    //     System.out.println("=================================================================");
+    //     System.out.println("=================================================================");
+    //     System.out.println("test Interfaces exceptions");
+    //     System.out.println("=================================================================");
+    //     System.out.println("=================================================================");
+        
+    //     try {
+    //         //ASMFooEx asm = new ASMFooEx();
+
+    //         ObjectProxyImpl op = new ObjectProxyImpl();
+
+    //         TypesCache tc = new TypesCache();
+
+    //         ASMFooEx ft = tc.findOrInsert(ASMFooEx.class, IObjectProxy.class, ()->{
+    //                                 Class clazz = new EasyProxy().getProxyClass(ASMFooEx.class, IObjectProxy.class);
+    //                                 return clazz;
+    //                             }).newInstance(op);
+    //         System.out.println("clase generada!!");
+
+    //         assertEquals(42, ft.hashCode());
+    //     } catch (Throwable ex) {
+    //         fail();
+    //         ex.printStackTrace();
+    //     }
+
+    // }
+
+
     public static void main(String[] args) {
         ProxyTest t = new ProxyTest();
         
         t.testTarget();
-
-//        t.testASM();
+        
+        // LOGGER.log(Level.INFO,LogSupplier.crear("texto %s", test.toString() ));
+        //        t.testASM();
 //        t.testEx();
 //        t.testCache();
         

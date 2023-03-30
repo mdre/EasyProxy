@@ -72,6 +72,8 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         
     }
 
+    public ASMFooTarget(){}
+
     public ASMFooTarget(IEasyProxyInterceptor epi) {
         System.out.println("inicializando... ");
         this.epi = epi;
@@ -137,23 +139,49 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
         } 
         
     }
+
+
+    @Override
+    public void ___testRuntimeException() throws RuntimeExceptionTest {
+        try {
+            epi.intercept(this,
+                          proxiedMethods.get("___testRuntimeException[]"),
+                          null
+                          );
+        } catch (Throwable ex) {
+            if (ex instanceof RuntimeException) 
+                throw (RuntimeException)ex;
+            else  {
+                System.out.println(" --- ERROR ---");
+               Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } 
+        
+    }
+
     //=================================================================
     
     @Override
     public void testRuntimeException() {
-        try {
-            epi.intercept(this,
-                          proxiedMethods.get("testRuntimeException[]"),
-                          superMethods.get(  "testRuntimeException$proxy[]")
-                          );
-        } catch (Throwable ex) {
-                
-            if (ex.getCause() instanceof RuntimeException) {
-                throw (RuntimeException)ex.getCause();
-            } else if (ex.getCause() instanceof InvocationTargetException) {
-                Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex.getCause());
-            } else {
-               Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+        if (epi==null) {
+            testRuntimeException$proxy();
+        } else {
+            try {
+                epi.intercept(this,
+                            proxiedMethods.get("testRuntimeException[]"),
+                            superMethods.get(  "testRuntimeException$proxy[]")
+                            );
+            } catch (Throwable ex) {
+                    
+                if (ex instanceof RuntimeException) {
+                    throw (RuntimeException)ex;
+                } else if (ex.getCause() instanceof RuntimeException) {
+                    throw (RuntimeException)ex.getCause();
+                } else if (ex.getCause() instanceof InvocationTargetException) {
+                    Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex.getCause());
+                } else {
+                Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         } 
     }
@@ -170,22 +198,27 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
 
     @Override
     public void testException(int i) throws ExceptionTest, ExceptionTest2 {
-        try {
-            epi.intercept(this,
+        if (epi==null) {
+            testException$proxy(i);
+        } else {
+            try {
+                epi.intercept(this,
                           proxiedMethods.get("testException[int]"),
                           superMethods.get(  "testException$proxy[int]"),
                           i
                           );
-        } catch (Throwable ex) {
-            if (ex.getCause() instanceof RuntimeException) 
-                throw (RuntimeException)ex.getCause();
-            else if (ex.getCause() instanceof ExceptionTest)
-                throw (ExceptionTest)ex.getCause();
-            else if (ex.getCause() instanceof ExceptionTest2)
-                throw (ExceptionTest2)ex.getCause();
-            else  
-               Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
-            
+            }
+            catch (Throwable ex) {
+                if (ex.getCause() instanceof RuntimeException) 
+                    throw (RuntimeException)ex.getCause();
+                else if (ex.getCause() instanceof ExceptionTest)
+                    throw (ExceptionTest)ex.getCause();
+                else if (ex.getCause() instanceof ExceptionTest2)
+                    throw (ExceptionTest2)ex.getCause();
+                else  
+                Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+                
+            }
         } 
     }
     
@@ -199,37 +232,39 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
     
 
 
-    // @Override
-    // public int testExceptionWithReturn(int i) throws ExceptionTest, ExceptionTest2, ExceptionTest3 {
-    //     try {
-    //         return (int)epi.intercept(this,
-    //                       proxiedMethods.get("testExceptionWithReturn[int]"),
-    //                       superMethods.get(  "testExceptionWithReturn$proxy[int]"),
-    //                       i
-    //                       );
-    //     } catch (InvocationTargetException ite) {
-    //         if (ite.getCause() instanceof RuntimeException) {
-    //             throw (RuntimeException)ite.getCause();
-    //         } else if (ite.getCause() instanceof ExceptionTest){
-    //             throw (ExceptionTest)ite.getCause();
-    //         } else if (ite.getCause() instanceof ExceptionTest2){
-    //             throw (ExceptionTest2)ite.getCause();
-    //         } else if (ite.getCause() instanceof ExceptionTest3){
-    //             throw (ExceptionTest3)ite.getCause();
-    //         }
-    //     } catch (Throwable ex) {
-    //         Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
-    //     }
-    //     return 0;
-    // }
+    @Override
+    public int testExceptionWithReturn(int i) throws ExceptionTest, ExceptionTest2, ExceptionTest3 {
+        if (epi==null) {
+            return testExceptionWithReturn$proxy(i);
+        } else {
+            try {
+                return (int)epi.intercept(this,
+                          proxiedMethods.get("testExceptionWithReturn[int]"),
+                          superMethods.get(  "testExceptionWithReturn$proxy[int]"),
+                          i
+                          );
+            
+            } catch (Throwable ex) {
+                if (ex.getCause() instanceof RuntimeException) 
+                    throw (RuntimeException)ex.getCause();
+                else if (ex.getCause() instanceof ExceptionTest)
+                    throw (ExceptionTest)ex.getCause();
+                else if (ex.getCause() instanceof ExceptionTest2)
+                    throw (ExceptionTest2)ex.getCause();
+                else  
+                   Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return 0;
+    }
     
-    // public int testExceptionWithReturn$proxy(int i) throws ExceptionTest, ExceptionTest2, ExceptionTest3 {
-    //     // try {
-    //         return super.testExceptionWithReturn(i); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
-    //     // } catch (RuntimeException rte) {
-    //     //     throw rte;
-    //     // }
-    // }
+    public int testExceptionWithReturn$proxy(int i) throws ExceptionTest, ExceptionTest2, ExceptionTest3 {
+        // try {
+            return super.testExceptionWithReturn(i); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+        // } catch (RuntimeException rte) {
+        //     throw rte;
+        // }
+    }
 
 
     // @Override
@@ -280,26 +315,33 @@ public class ASMFooTarget extends ASMFoo implements IObjectProxy {
     // }
 
 
-    // @Override
-    // public ASMFoo setValues(int i, Integer II, ASMFoo foo, ASMFoo[] fooV, boolean b, float f,  float[] f1, Float[][] f2) throws Exception {
-    //     try {
-    //         return (ASMFoo)epi.intercept(this,
-    //                       proxiedMethods.get("public asm.proxy.ASMFoo asm.proxy.ASMFoo.setValues(int,java.lang.Integer,asm.proxy.ASMFoo,boolean) throws java.lang.Exception"),
-    //                       superMethods.get("public asm.proxy.ASMFoo asm.proxy.ASMFoo.setValues(int,java.lang.Integer,asm.proxy.ASMFoo,boolean) throws java.lang.Exception"),
-    //                       i, II, foo, fooV, b, f, f1, f2);
-    //     } catch (InvocationTargetException ite) {
-    //         if (ite.getCause() instanceof RuntimeException) {
-    //             throw (RuntimeException)ite.getCause();
-    //         } 
-    //     } catch (Throwable ex) {
-    //         Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
-    //     }
-    //     return null;
-    // }
+    @Override
+    public ASMFoo setValues(int i, Integer II, ASMFoo foo, ASMFoo[] fooV, boolean b, float f,  float[] f1, Float[][] f2) throws Exception {
+        if (this.epi == null) {
+            return this.setValues$proxy(i, II, foo, fooV, b, f, f1, f2);
+        } else {
+            try {
+                return (ASMFoo)epi.intercept(this,
+                            proxiedMethods.get("public asm.proxy.ASMFoo asm.proxy.ASMFoo.setValues(int,java.lang.Integer,asm.proxy.ASMFoo,boolean) throws java.lang.Exception"),
+                            superMethods.get("public asm.proxy.ASMFoo asm.proxy.ASMFoo.setValues(int,java.lang.Integer,asm.proxy.ASMFoo,boolean) throws java.lang.Exception"),
+                            i, II, foo, fooV, b, f, f1, f2);
+            } catch (Throwable ex) {
+                if (ex.getCause() instanceof RuntimeException) 
+                    throw (RuntimeException)ex.getCause();
+                else if (ex.getCause() instanceof ExceptionTest)
+                    throw (ExceptionTest)ex.getCause();
+                else if (ex.getCause() instanceof ExceptionTest2)
+                    throw (ExceptionTest2)ex.getCause();
+                else  
+                   Logger.getLogger(ASMFooTarget.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return null;
+    }
 
-    // public ASMFoo setValues$proxy(int i, Integer II, ASMFoo foo, ASMFoo[] fooV, boolean b, float f,  float[] f1, Float[][] f2) throws Exception{
-    //     return super.setValues(i, II, foo, fooV, b, f, f1, f2);
-    // }
+    public ASMFoo setValues$proxy(int i, Integer II, ASMFoo foo, ASMFoo[] fooV, boolean b, float f,  float[] f1, Float[][] f2) throws Exception{
+        return super.setValues(i, II, foo, fooV, b, f, f1, f2);
+    }
 
     
     

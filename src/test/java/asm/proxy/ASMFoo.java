@@ -14,14 +14,19 @@ import java.io.IOException;
 public class ASMFoo implements Comparable<ASMFoo>  {
     
     String s;
+    int i;
     
     public ASMFoo() {
     }
 
-    @Deprecated
     public void setS(String s) {
         this.s = s;
         System.out.println("ASMFoo.setS ");
+    }
+
+    @Annotation
+    public String testAnnotation() {
+        return "no detecta";
     }
 
     @Override
@@ -57,7 +62,8 @@ public class ASMFoo implements Comparable<ASMFoo>  {
     public int toOverride(int i) {
         // método para pobar la llamada directa desde una superclase.
         System.out.println("toOverride: " + i);
-        return i;
+        this.i = i;
+        return this.i;
     }
 
     public int toOverride2(int i) {

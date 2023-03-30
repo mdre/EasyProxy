@@ -53,6 +53,15 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
                 //     }
                 // }
                 break;
+            case "___testRuntimeException":
+                    throw new RuntimeExceptionTest("exception test");
+            
+            case "testAnnotation":
+                if (method.isAnnotationPresent(Annotation.class)) {
+                    result = "Annotation Present";
+                }   
+                break;
+
             default:
                 // try {
                     result = superMethod.invoke(target, args);
@@ -85,11 +94,18 @@ public class ObjectProxyImpl implements IObjectProxy, IEasyProxyInterceptor {
     }
 
     @Override
-    public void ___testException(int i) throws ExceptionTest, ExceptionTest2 {
-        if (i == 1) { 
+    public void ___testException(int i) throws RuntimeExceptionTest, ExceptionTest, ExceptionTest2 {
+        if (i == 0) {
+            throw new RuntimeExceptionTest("Runtime Exception Test");
+        } else if (i == 1) { 
             throw new ExceptionTest("Exception test!!");
         } else {
             throw new ExceptionTest2("Exception test 2!!");
         }
+    }
+
+    @Override
+    public void ___testRuntimeException(){
+        
     }
 }

@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.text.rtf.RTFEditorKit;
+
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -34,7 +36,7 @@ public class EasyProxy implements Opcodes {
 
     static {
         if (LOGGER.getLevel() == null) {
-            LOGGER.setLevel(Level.INFO);
+            LOGGER.setLevel(Level.FINEST);
         }
         
         org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
@@ -54,6 +56,7 @@ public class EasyProxy implements Opcodes {
     Map<String,TypeRef> typesHelper = new HashMap<>();
     // Map<String,String> checkCast = new HashMap<>();
 
+    private String outputDirectory = null;
     
     public EasyProxy() {
 
@@ -80,6 +83,15 @@ public class EasyProxy implements Opcodes {
         return this;
     }
 
+    public String getOutputDirectory() {
+        return outputDirectory;
+    }
+
+    public EasyProxy setOutputDirectory(String outputDirectory) {
+        this.outputDirectory = outputDirectory.endsWith("/")?outputDirectory:outputDirectory+"/";
+        return this;
+    }
+    
     public Class<?> getProxyClass(Class<?> c) throws XDuplicatedProxyClass { 
         return getProxyClass(c, null);
     }
@@ -137,9 +149,11 @@ public class EasyProxy implements Opcodes {
 
         String clazzName = c.getCanonicalName().replace(".", "/") + clazzSuffix;
         String superName = c.getCanonicalName().replace(".", "/");
+        
         LOGGER.log(Level.FINEST, "\n\n\nclazzName: " + clazzName);
         LOGGER.log(Level.FINEST, "super: " + superName);
-        LOGGER.log(Level.FINEST, "proxy interface: " + proxyInterface);
+        String pi = proxyInterface;
+        LOGGER.log(Level.FINEST, "proxy interface: " + pi);
         // Comenzar a crear la clase
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES|ClassWriter.COMPUTE_MAXS);
         cw.visit(Opcodes.V11, // Java 11
@@ -150,7 +164,7 @@ public class EasyProxy implements Opcodes {
                 proxyInterface.isEmpty()?null:new String[] { proxyInterface }); // interfaces
 
         // agregar el campo interceptor
-        cw.visitField(Opcodes.ACC_PRIVATE,
+        cw.visitField(Opcodes.ACC_PUBLIC,
                 PROXYNAME,
                 Type.getDescriptor(IEasyProxyInterceptor.class),
                 null, null).visitEnd();
@@ -267,7 +281,7 @@ public class EasyProxy implements Opcodes {
         cw.visitEnd();
         byte[] data = cw.toByteArray();
 
-        if (LOGGER.getLevel() == Level.FINEST) {
+        if (this.outputDirectory != null) {
             writeToFile(clazzName, data);
         }
         Class<T> r = (Class<T>)this.injectClass(c.getClassLoader(), clazzName.replace("/", "."), data);
@@ -279,8 +293,8 @@ public class EasyProxy implements Opcodes {
         Class<?> clazzLoader = ClassLoader.class;
         Class<?> dynamicallyGeneratedClass = null;
         try {
-            LOGGER.log(Level.FINEST,"la clase ya ha sido cargada!!!! utilizar la existente");
             dynamicallyGeneratedClass = ClassLoader.class.forName(clazzName);
+            LOGGER.log(Level.FINEST,"la clase ya ha sido cargada!!!! utilizar la existente");
         } catch (ClassNotFoundException cnf) {
             LOGGER.log(Level.FINEST,"Clase no encontrada. Proceder a cargarla en el ClassLoader...");
             try {
@@ -289,11 +303,12 @@ public class EasyProxy implements Opcodes {
                 defineClassMethod.setAccessible(true);
                 dynamicallyGeneratedClass = (Class<?>) defineClassMethod.invoke(cl, clazzName, data, 0, data.length);
             } catch (NoSuchMethodException | SecurityException | IllegalAccessException | InvocationTargetException e) {
-                // TODO Auto-generated catch block
+                LOGGER.log(Level.FINEST,"ERROR al intentar insertar la clase en el ClassLoader!");
                 e.printStackTrace();
             }
             
         }
+        LOGGER.log(Level.FINEST,"clase cargada con éxito!");
         return dynamicallyGeneratedClass;
     }
     
@@ -504,9 +519,99 @@ public class EasyProxy implements Opcodes {
         Label tryEnd = new Label();
         Label catchThw = new Label();
         Label lblReturn = new Label();
+        Label labelElse = new Label();
         methodVisitor.visitTryCatchBlock(tryStart, tryEnd, catchThw, "java/lang/Throwable");
         
+
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitFieldInsn(GETFIELD, clazzName, PROXYNAME, "Lasm/proxy/IEasyProxyInterceptor;");
+
+        // Esto es la primera parte del IF que controla si el interceptor está en null
+        // y de ser así llama al método original sin interceptar. Esto se coloca para poder invocar 
+        // correctamente los métodos cuando son invocados desde el constructor por defecto de la clase padre
+        // dado que en ese momento el interceptor aún no se ha asignado.
+        methodVisitor.visitJumpInsn(IFNONNULL, tryStart);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+
+        int stackOffset = 1;
+        if (method.getParameterCount()>0) {
+            // cargar a la pila todos los parámetros
+            // cuando se inserta un Long o Double es necesario saltar un lugar en la pila.
+            // methodVisitor.visitIntInsn(BIPUSH,method.getParameterCount());
+            // methodVisitor.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+            
+            // insetar todas los parametros en el vector. Para cada parámetro es necesario realuzar la conversión correspondiente.
+            for (int i = 0; i < method.getParameterCount(); i++) {
+                // methodVisitor.visitInsn(DUP);
+                // methodVisitor.visitIntInsn(BIPUSH,i);
+                switch(method.getParameters()[i].getType().toString()) {
+                    case "boolean":
+                        methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                        stackOffset += 1;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+                        break;
+                    case "char":
+                        methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                        stackOffset += 1;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", false);
+                        break;
+                    case "byte":
+                        methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                        stackOffset += 1;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;", false);
+                        break;
+                    case "short":
+                        methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                        stackOffset += 1;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Short", "valueOf", "(S)Ljava/lang/Short;", false);
+                        break;
+                    case "int":
+                        methodVisitor.visitVarInsn(ILOAD, stackOffset);
+                        stackOffset += 1;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+                        break;
+                    case "float":
+                        methodVisitor.visitVarInsn(FLOAD, stackOffset);
+                        stackOffset += 1;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+                        break;
+                    case "long":
+                        methodVisitor.visitVarInsn(LLOAD, stackOffset);
+                        stackOffset += 2;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", false);
+                        break;
+                    case "double":
+                        methodVisitor.visitVarInsn(DLOAD, stackOffset);
+                        stackOffset += 2;
+                        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", false);
+                        break;
+                    default:
+                        methodVisitor.visitVarInsn(ALOAD, stackOffset);
+                        stackOffset += 1;
+                }
+                // methodVisitor.visitInsn(AASTORE);
+            }
+        }
+        
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, clazzName, method.getName()+"$proxy", methodDescriptor, false);
+        
+        if (returnType.toAsm.equals("V")) {
+            methodVisitor.visitJumpInsn(GOTO, lblReturn);        
+        } else {
+            // castear el resultado al tipo del retorno del método
+            // LOGGER.log(Level.FINEST,"el método retorna valores. Preparar el cast");
+            // methodVisitor.visitTypeInsn(CHECKCAST, returnCastType);
+            // LOGGER.log(Level.FINEST,"checkcast: "+returnCastType);
+            // if (returnType.castMethod!=null) {
+            //     methodVisitor.visitMethodInsn(INVOKEVIRTUAL, returnType.castClass, returnType.castMethod, returnType.descrptor, false);
+            // }
+            // methodVisitor.visitLabel(tryEnd);
+            methodVisitor.visitInsn(returnType.asmReturnValue);
+        }
+        
+        // esto es el else que llama al interceptor en vez del método
         methodVisitor.visitLabel(tryStart);
+        methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitFieldInsn(GETFIELD, clazzName, PROXYNAME, "Lasm/proxy/IEasyProxyInterceptor;");
         methodVisitor.visitVarInsn(ALOAD, 0);
@@ -521,11 +626,12 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/HashMap", "get",
                 "(Ljava/lang/Object;)Ljava/lang/Object;", false);
         methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/reflect/Method");
+
         methodVisitor.visitIntInsn(BIPUSH,method.getParameterCount());
         methodVisitor.visitTypeInsn(ANEWARRAY, "java/lang/Object");
-    
+        
         // cuando se inserta un Long o Double es necesario saltar un lugar en la pila.
-        int stackOffset = 1;
+        stackOffset = 1;
         // insetar todas los parametros en el vector. Para cada parámetro es necesario realuzar la conversión correspondiente.
         for (int i = 0; i < method.getParameterCount(); i++) {
             methodVisitor.visitInsn(DUP);
@@ -606,10 +712,21 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitVarInsn(ASTORE, stackOffset);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
         
+        methodVisitor.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
+        labelElse = new Label();
+        methodVisitor.visitJumpInsn(IFEQ, labelElse);
+        methodVisitor.visitVarInsn(ALOAD, stackOffset);
+        methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/RuntimeException");
+        methodVisitor.visitInsn(ATHROW);
+        
+        methodVisitor.visitLabel(labelElse);
+
         //desempaquetar los runtime exceptions
+        methodVisitor.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Throwable"}, 0, null);
+        methodVisitor.visitVarInsn(ALOAD, stackOffset); 
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
         methodVisitor.visitTypeInsn(INSTANCEOF, "java/lang/RuntimeException");
-        Label labelElse = new Label();
+        labelElse = new Label();
         methodVisitor.visitJumpInsn(IFEQ, labelElse);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
@@ -619,15 +736,15 @@ public class EasyProxy implements Opcodes {
         methodVisitor.visitLabel(labelElse);
 
         // armar un if para cada exception
-        boolean  append = true;
+        // boolean  append = true;
         for (String ex: methodExceptions) {
             labelElse = new Label();
-            if (append) {
-                methodVisitor.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Throwable"}, 0, null);
-                append = false;
-            } else {
+            // if (append) {
+            //     methodVisitor.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Throwable"}, 0, null);
+            //     append = false;
+            // } else {
                 methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-            }
+            // }
             methodVisitor.visitVarInsn(ALOAD, stackOffset);
             methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
             methodVisitor.visitTypeInsn(INSTANCEOF, ex);
@@ -1003,13 +1120,13 @@ public class EasyProxy implements Opcodes {
     private void writeToFile(String className, byte[] myByteArray) {
         LOGGER.log(Level.FINER, "Escribiendo archivo a disco en /tmp/asm");
         try {
-            File theDir = new File("/tmp/asm");
+            File theDir = new File(this.outputDirectory);
             if (!theDir.exists()) {
                 theDir.mkdir();
             }
 
             FileOutputStream fos = new FileOutputStream(
-                    "/tmp/asm/" + className.substring(className.lastIndexOf("/")) + ".class");
+                    this.outputDirectory + className.substring(className.lastIndexOf("/")) + ".class");
             fos.write(myByteArray);
             fos.close();
 
@@ -1018,4 +1135,7 @@ public class EasyProxy implements Opcodes {
                     .getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+   
+    
 }

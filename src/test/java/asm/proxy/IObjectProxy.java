@@ -12,5 +12,6 @@ public interface IObjectProxy {
     public void ___sayHello(String s);
     public String ___getLast();
     public IObjectProxy ___getInterface();
-    public void ___testException(int i) throws ExceptionTest, ExceptionTest2; 
+    public void ___testException(int i) throws RuntimeExceptionTest, ExceptionTest, ExceptionTest2; 
+    public void ___testRuntimeException();
 }

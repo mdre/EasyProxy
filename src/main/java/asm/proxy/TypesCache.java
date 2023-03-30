@@ -13,7 +13,7 @@ public class TypesCache {
     private final static Logger LOGGER = Logger.getLogger(TypesCache.class.getName());
     static {
         if (LOGGER.getLevel() == null) {
-            LOGGER.setLevel(Level.FINEST);
+            LOGGER.setLevel(Level.INFO);
         }
         org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
     }
