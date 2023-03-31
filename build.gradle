@@ -92,7 +92,7 @@ dependencies {
     //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
     implementation 'org.ow2.asm:asm:9.4'
     implementation 'org.ow2.asm:asm-util:9.4'
-    implementation 'org.burningwave:core:12.62.5'
+    // implementation 'org.burningwave:core:12.62.5'
     testImplementation "junit:junit:[4,)"
 }
 

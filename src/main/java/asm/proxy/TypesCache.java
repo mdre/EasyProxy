@@ -15,7 +15,7 @@ public class TypesCache {
         if (LOGGER.getLevel() == null) {
             LOGGER.setLevel(Level.INFO);
         }
-        org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
+        // org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
     }
     
     public TypesCache() {

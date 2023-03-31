@@ -7,6 +7,7 @@ package asm.proxy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -36,10 +37,10 @@ public class EasyProxy implements Opcodes {
 
     static {
         if (LOGGER.getLevel() == null) {
-            LOGGER.setLevel(Level.FINEST);
+            LOGGER.setLevel(Level.WARNING);
         }
         
-        org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
+        // org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
     }
 
     private String clazzSuffix = "_EasyProxy";
@@ -298,11 +299,15 @@ public class EasyProxy implements Opcodes {
         } catch (ClassNotFoundException cnf) {
             LOGGER.log(Level.FINEST,"Clase no encontrada. Proceder a cargarla en el ClassLoader...");
             try {
-                Method defineClassMethod;
-                defineClassMethod = clazzLoader.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class);
-                defineClassMethod.setAccessible(true);
-                dynamicallyGeneratedClass = (Class<?>) defineClassMethod.invoke(cl, clazzName, data, 0, data.length);
-            } catch (NoSuchMethodException | SecurityException | IllegalAccessException | InvocationTargetException e) {
+                // Method defineClassMethod;
+                // defineClassMethod = clazzLoader.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class);
+                // defineClassMethod.setAccessible(true);
+                // dynamicallyGeneratedClass = (Class<?>) defineClassMethod.invoke(cl, clazzName, data, 0, data.length);
+                DynamicClassLoader dcl = new DynamicClassLoader(cl);
+                dynamicallyGeneratedClass = dcl.defineClass(clazzName, data);
+            
+            // } catch (NoSuchMethodException | SecurityException | IllegalAccessException | InvocationTargetException e) {
+            } catch ( SecurityException  e) {
                 LOGGER.log(Level.FINEST,"ERROR al intentar insertar la clase en el ClassLoader!");
                 e.printStackTrace();
             }
@@ -312,6 +317,29 @@ public class EasyProxy implements Opcodes {
         return dynamicallyGeneratedClass;
     }
     
+    // private Class<?> injectClass(Class<?> c, String clazzName, byte[] data) {
+    //     Class<?> dynamicallyGeneratedClass = null;
+
+    //     // Obtener el objeto MethodHandles.Lookup que tiene acceso a los miembros privados de la clase original
+    //     MethodHandles.Lookup originalClassLookup = MethodHandles.privateLookupIn(c, MethodHandles.lookup());
+
+    //     // Obtener el ClassLoader de la clase original
+    //     ClassLoader originalClassLoader = c.getClassLoader();
+
+    //     // Definir la clase generada por ByteBuddy en el ClassLoader de la clase original
+    //     Class<?> loadedClass = (Class<?>) originalClassLookup.findVirtual(ClassLoader.class, "defineClass", MethodType.methodType(Class.class, String.class, byte[].class, int.class, int.class))
+    //         .invoke(originalClassLoader, clazzName, ((Class<?> ) generatedClass).getDeclaredField("BYTES").get(null), 0, ((Class<?> ) generatedClass).getDeclaredField("BYTES").get(null).length);
+
+
+
+
+
+    //     LOGGER.log(Level.FINEST,"clase cargada con éxito!");
+    //     return dynamicallyGeneratedClass;
+    // }
+
+
+
     // Agrega un método estático que registra todos los métodos de la clase y del
     // interceptor
     private void addInitMethod(ClassWriter cw, String clazzName, String superName, Class<?> interceptor) {

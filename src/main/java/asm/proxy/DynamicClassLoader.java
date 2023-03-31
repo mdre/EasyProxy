@@ -1,10 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
 package asm.proxy;
 
+import java.lang.Class;
+import java.lang.ClassLoader;
+import java.lang.String;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,7 +19,12 @@ public class DynamicClassLoader extends ClassLoader {
         }
     }
     
+    public DynamicClassLoader(ClassLoader parent) {
+        super(parent);
+    }
+
+
     public Class<?> defineClass(String name, byte[] b) {
-        return defineClass(name, b, 0, b.length);
+        return super.defineClass(name, b, 0, b.length);
     }
 }
