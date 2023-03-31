@@ -5,7 +5,7 @@ Final Methods and Syntetic Methods are ignored.
 
 To intecept the calls, you need to provide an object that implements the interface IEasyProxyInteceptor. This object will receive all the calls to the instance. 
 
-The interface define the method `intecept` that receives all the calls to the instance and here you can decide what to do with it. As a parameter it receives the reference to the original method call in the `superMethod` reference. You can invoke the it when you want. 
+The interface define the method `intecept` that receives all the calls to the instance and here you can decide what to do with it. As a parameter it receives the reference to the original method call in the `superMethod` reference. You can invoke it when you want. 
 
 You can also define extra methods, add it to the subclass and process it in the interceptor. To do this you must define an interface and pass it as a parameter with the target class. All the methods in the interface will be implemented in the subclass and redirected to the interceptor. The `superMethod` will be null in this case.
 
@@ -38,7 +38,7 @@ To intercept all the calls, you must implement the IEasyProxy interface in a cla
 public class ObjectProxyImpl implements  IEasyProxyInterceptor {
 
     @Override
-    public Object intercept(Object target, Method method, Method superMethod, Object... args) {
+    public Object intercept(Object target, Method method, Method superMethod, Object... args) throws Throwable {
         System.out.println("Intercepted: "+method.toString());
         System.out.println("superMethod: "+superMethod);
         System.out.println("anotations: "+Arrays.toString(method.getAnnotations()));
@@ -51,12 +51,8 @@ public class ObjectProxyImpl implements  IEasyProxyInterceptor {
                 break;
             
             default:
-                try {
-                    result = superMethod.invoke(target, args);
-                } catch (Throwable e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                result = superMethod.invoke(target, args);
+                
         }
         return result;
     }
@@ -103,7 +99,7 @@ public class ObjectProxyImpl implements IObjetProxy,  IEasyProxyInterceptor {
     String lastMethod = "";
 
     @Override
-    public Object intercept(Object target, Method method, Method superMethod, Object... args) {
+    public Object intercept(Object target, Method method, Method superMethod, Object... args) throws Throwable {
         System.out.println("Intercepted: "+method.toString());
         System.out.println("superMethod: "+superMethod);
         System.out.println("anotations: "+Arrays.toString(method.getAnnotations()));
@@ -116,20 +112,20 @@ public class ObjectProxyImpl implements IObjetProxy,  IEasyProxyInterceptor {
                 args[0] = "*" + args[0] + "*";
                 result = superMethod.invoke(target, args);
                 break;
-            
+                
+            case "___getLast":
+                result = this.___getLast();
+                break;
+
             default:
-                try {
-                    result = superMethod.invoke(target, args);
-                } catch (Throwable e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+                result = superMethod.invoke(target, args);
+                
         }
         return result;
     }
 
     @Override
-    public String getLast() {
+    public String ___getLast() {
         return this.lastMethod;
     }
 }
