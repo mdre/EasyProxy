@@ -101,4 +101,8 @@ public class ASMFoo implements Comparable<ASMFoo>  {
         }
         return 42;
     }
+
+    public void stackOverflowTest() {
+        stackOverflowTest();
+    }
 }

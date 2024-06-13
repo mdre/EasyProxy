@@ -90,7 +90,7 @@ repositories {
 dependencies {
     // You can read more about how to add dependency here:
     //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
-    implementation 'org.ow2.asm:asm:9.4'
+    api 'org.ow2.asm:asm:9.4'
     implementation 'org.ow2.asm:asm-util:9.4'
     // implementation 'org.burningwave:core:12.62.5'
     testImplementation "junit:junit:[4,)"
@@ -161,7 +161,7 @@ java {
 
 //create a single Jar with all dependencies - DSL 7.0
 task fatJar(type: Jar) {
-    baseName = project.name + '-all'
+    archiveBaseName = project.name + '-all'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar

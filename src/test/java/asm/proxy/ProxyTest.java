@@ -6,7 +6,6 @@
 package asm.proxy;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -331,6 +330,16 @@ public class ProxyTest {
 
             IObjectProxy iop = (IObjectProxy)ft;
             assertThrows(ExceptionTest.class,()->iop.___testException(1));
+            
+            try {
+                ft.stackOverflowTest();
+                fail();
+            } catch(Error e) {
+                System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                System.out.println("Excepción ERROR CORRECTAMENTE CAPTURADA");
+                System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                //e.printStackTrace();
+            };
 
         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | XDuplicatedProxyClass ex) {
             Logger.getLogger(ProxyTest.class.getName()).log(Level.SEVERE, null, ex);

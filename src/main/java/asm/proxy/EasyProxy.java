@@ -7,8 +7,6 @@ package asm.proxy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -18,8 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.swing.text.rtf.RTFEditorKit;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
@@ -40,7 +36,6 @@ public class EasyProxy implements Opcodes {
             LOGGER.setLevel(Level.WARNING);
         }
         
-        // org.burningwave.core.assembler.StaticComponentContainer.Modules.exportAllToAll();
     }
 
     private String clazzSuffix = "_EasyProxy";
@@ -522,7 +517,15 @@ public class EasyProxy implements Opcodes {
         TypeRef returnType = typesHelper.get(method.getReturnType().toString());
         if (returnType == null ) {
             // si es null quiere decir el tipo de retorno es una clase.
-            returnType = new TypeRef("L"+method.getReturnType().toString().replace("class ","").replace("interface ","").replace(".", "/")+";",null,null,null,ARETURN,ACONST_NULL);
+            returnType = new TypeRef("L"+method.getReturnType().toString()
+                                                    .replace("class ","")
+                                                    .replace("interface ","")
+                                                    .replace(".", "/")+";",
+                                null,
+                                null,
+                                null,
+                                ARETURN,
+                                ACONST_NULL);
         }
         LOGGER.log(Level.FINEST,"returnType: "+returnType + "  --> "+method.getReturnType().toString());
         // determinar el cast para el valor devuelto por el interceptor 
@@ -788,13 +791,20 @@ public class EasyProxy implements Opcodes {
         }
         
         methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-        methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
-        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/logging/Logger", "getLogger", "(Ljava/lang/String;)Ljava/util/logging/Logger;", false);
-        methodVisitor.visitFieldInsn(GETSTATIC, "java/util/logging/Level", "SEVERE", "Ljava/util/logging/Level;");
-        methodVisitor.visitInsn(ACONST_NULL);
         methodVisitor.visitVarInsn(ALOAD, stackOffset);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/logging/Logger", "log", "(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V", false);
+        methodVisitor.visitTypeInsn(INSTANCEOF, "java/lang/Error");
+        Label lblError = new Label();
+        methodVisitor.visitJumpInsn(IFEQ, lblError);
+        
+        methodVisitor.visitVarInsn(ALOAD, stackOffset);
+        methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Error");
+        methodVisitor.visitInsn(ATHROW);
+
+        methodVisitor.visitLabel(lblError);
+        methodVisitor.visitVarInsn(ALOAD, stackOffset);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+        methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Error");
+        methodVisitor.visitInsn(ATHROW);
 
         methodVisitor.visitLabel(lblReturn);
         methodVisitor.visitFrame(Opcodes.F_CHOP, 1, null, 0, null);
@@ -953,7 +963,7 @@ public class EasyProxy implements Opcodes {
         Label tryEnd = new Label();
         Label catchThw = new Label();
         Label lblReturn = new Label();
-
+        Label lblEnd = new Label();
 
         methodVisitor.visitTryCatchBlock(tryStart, tryEnd, catchThw, "java/lang/Throwable");
         methodVisitor.visitLabel(tryStart);
@@ -1090,14 +1100,20 @@ public class EasyProxy implements Opcodes {
         }
         
         methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-        methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
-        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/logging/Logger", "getLogger", "(Ljava/lang/String;)Ljava/util/logging/Logger;", false);
-        methodVisitor.visitFieldInsn(GETSTATIC, "java/util/logging/Level", "SEVERE", "Ljava/util/logging/Level;");
-        methodVisitor.visitInsn(ACONST_NULL);
-        methodVisitor.visitVarInsn(ALOAD, stackOffset);
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/logging/Logger", "log", "(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V", false);
+        // methodVisitor.visitLdcInsn(Type.getType("L"+clazzName+";"));
+        // methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
+        // methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/logging/Logger", "getLogger", "(Ljava/lang/String;)Ljava/util/logging/Logger;", false);
+        // methodVisitor.visitFieldInsn(GETSTATIC, "java/util/logging/Level", "SEVERE", "Ljava/util/logging/Level;");
+        // methodVisitor.visitInsn(ACONST_NULL);
+        // methodVisitor.visitVarInsn(ALOAD, stackOffset);
+        // methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/logging/Logger", "log", "(Ljava/util/logging/Level;Ljava/lang/String;Ljava/lang/Throwable;)V", false);
         
+        methodVisitor.visitVarInsn(ALOAD, stackOffset);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Throwable", "getCause", "()Ljava/lang/Throwable;", false);
+        methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Error");
+        methodVisitor.visitInsn(ATHROW);
+        // methodVisitor.visitJumpInsn(GOTO, lblEnd);
+
         methodVisitor.visitLabel(lblReturn);
         methodVisitor.visitFrame(Opcodes.F_CHOP, 1, null, 0, null);
         if (returnType.toAsm.equals("V")) {
@@ -1108,6 +1124,8 @@ public class EasyProxy implements Opcodes {
             methodVisitor.visitInsn(returnType.defaultValue);
             methodVisitor.visitInsn(returnType.asmReturnValue);
         }
+        
+        methodVisitor.visitLabel(lblEnd);
         //int maxLocals = stackOffset+1; // getArgsLength(method.getParameterTypes())+1+(returnType.toAsm.equals("V")?1:0);
         //int maxStack = maxLocals + 5;
         methodVisitor.visitMaxs(0,0); //methodVisitor.visitMaxs(maxStack, maxLocals);
