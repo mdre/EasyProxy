@@ -1,10 +1,11 @@
 .gradle/
 .history/
 .nb-gradle/
-/build/
-/bin/
+build/
+bin/
 rebel.xml
 .~lock*
 *.zargo~
+*.class
 .*
 !.gitignore

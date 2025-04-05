@@ -1,22 +1,19 @@
 // DSL Gradle 7.0
 plugins {
     id 'java-library'
-    // https://plugins.gradle.org/plugin/net.researchgate.release
-    // id 'net.researchgate.release' version '2.8.1'
-    // https://plugins.gradle.org/plugin/nu.studer.credentials
-    id 'nu.studer.credentials' version '2.1'
-    // https://plugins.gradle.org/plugin/io.codearte.nexus-staging
-    // id 'io.codearte.nexus-staging' version '0.30.0'
-
-    //https://github.com/gradle-nexus/publish-plugin/
-    id("io.github.gradle-nexus.publish-plugin") version "1.1.0"
-
     id 'maven-publish'
     id 'signing'
+    
+    // https://plugins.gradle.org/plugin/nu.studer.credentials
+    id 'nu.studer.credentials' version '3.0'
+    // 
+    //id 'io.codearte.nexus-staging' version '0.21.0'
+    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+    
 }
 
-def sonatypeUsername = credentials.sonatypeUser
-def sonatypePassword = credentials.sonatypePassword
+def sonatypeUsername = credentials.forKey("sonatypeUser")
+def sonatypePassword = credentials.forKey("sonatypePassword")
 
 // para publicar:
 //  gradle publishToSonatype closeAndReleaseSonatypeStagingRepository sabn
@@ -24,6 +21,11 @@ def sonatypePassword = credentials.sonatypePassword
 
 // desactivo la generación de javadoc en los proyectos que tengan la tarea
 javadoc.enabled = true
+
+compileJava {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
 println "***************************************************************"
 println "SISTEMA: " + name
@@ -90,8 +92,8 @@ repositories {
 dependencies {
     // You can read more about how to add dependency here:
     //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
-    api 'org.ow2.asm:asm:9.4'
-    implementation 'org.ow2.asm:asm-util:9.4'
+    api 'org.ow2.asm:asm:9.5'
+    implementation 'org.ow2.asm:asm-util:9.5'
     // implementation 'org.burningwave:core:12.62.5'
     testImplementation "junit:junit:[4,)"
 }
