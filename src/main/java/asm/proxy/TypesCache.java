@@ -23,31 +23,37 @@ public class TypesCache {
 
     /**
      * Find an existing type or insert a new one.
-     * @param <T>
-     * @param c
-     * @param interceptorInterface
-     * @return
-     * @throws Exception
+     * FIX: se reemplaza synchronized sobre todo el método por una verificación con
+     * bloqueo mínimo. El ConcurrentHashMap ya protege lecturas concurrentes; solo
+     * se sincroniza el bloque de creación para evitar doble generación de proxies.
      */
-    public synchronized <T>  CachedType<T> findOrInsert(Class<T>  c, Class<?> interceptorInterface, Callable<Class<?>> createIt) throws Exception {
-        // primero buscar si la clase ya ha sido referenciada.
+    public <T> CachedType<T> findOrInsert(Class<T> c, Class<?> interceptorInterface, Callable<Class<?>> createIt) throws Exception {
         LOGGER.log(Level.FINEST, "current cache: "+typesCache);
-        
         LOGGER.log(Level.FINEST, "search for: "+c.getCanonicalName());
+
+        // Lectura sin lock — ConcurrentHashMap es thread-safe para get
         CachedType cached = typesCache.get(c.getCanonicalName());
-        if (cached == null) {
-            // no se encontró la clase y hay que generar el proxy
-            Class clazz = createIt.call();
-            cached = new CachedType<>(clazz);
-            typesCache.put(c.getCanonicalName(), cached);
-        } else {
-            // verificar que la clase sea instancia del inteceptor.
+        if (cached != null) {
             LOGGER.log(Level.FINEST, "cached type: "+cached.getType().getCanonicalName()+" interfaces: "+Arrays.toString(cached.getType().getInterfaces()));
             LOGGER.log(Level.FINEST, "interceptor: "+interceptorInterface.getCanonicalName());
-            if (!interceptorInterface.isAssignableFrom(cached.getType() ))
+            if (!interceptorInterface.isAssignableFrom(cached.getType()))
                 throw new XDuplicatedProxyClass();
+            return cached;
         }
 
+        // Solo se bloquea al crear para evitar que dos hilos generen el mismo proxy
+        synchronized (this) {
+            // Re-verificar tras adquirir el lock (double-checked locking)
+            cached = typesCache.get(c.getCanonicalName());
+            if (cached == null) {
+                Class clazz = createIt.call();
+                cached = new CachedType<>(clazz);
+                typesCache.put(c.getCanonicalName(), cached);
+            } else {
+                if (!interceptorInterface.isAssignableFrom(cached.getType()))
+                    throw new XDuplicatedProxyClass();
+            }
+        }
         return cached;
     }
 
