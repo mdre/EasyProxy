@@ -281,11 +281,13 @@ public class EasyProxy implements Opcodes {
 
     private Class<?> injectClass(ClassLoader cl, String clazzName, byte[] data) {
         LOGGER.log(Level.FINEST,"inyectando la clase en el ClassLoader....");
+        Class<?> clazzLoader = ClassLoader.class;
         Class<?> dynamicallyGeneratedClass = null;
         try {
+            dynamicallyGeneratedClass = ClassLoader.class.forName(clazzName);
             // FIX: usar el ClassLoader recibido como parámetro, no el ClassLoader del sistema.
             // ClassLoader.class.forName(...) busca en el ClassLoader de bootstrap, no en el del caller.
-            dynamicallyGeneratedClass = Class.forName(clazzName, false, cl);
+//            dynamicallyGeneratedClass = Class.forName(clazzName, false, cl); FIX propuesto por Claude. Revisar si es mejor o no.
             LOGGER.log(Level.FINEST,"la clase ya ha sido cargada!!!! utilizar la existente");
         } catch (ClassNotFoundException cnf) {
             LOGGER.log(Level.FINEST,"Clase no encontrada. Proceder a cargarla en el ClassLoader...");

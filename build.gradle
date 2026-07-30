@@ -92,8 +92,8 @@ repositories {
 dependencies {
     // You can read more about how to add dependency here:
     //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
-    api 'org.ow2.asm:asm:9.5'
-    implementation 'org.ow2.asm:asm-util:9.5'
+    api 'org.ow2.asm:asm:9.7'
+    implementation 'org.ow2.asm:asm-util:9.7'
     // implementation 'org.burningwave:core:12.62.5'
     testImplementation "junit:junit:[4,)"
 }
