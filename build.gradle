@@ -1,31 +1,58 @@
-// DSL Gradle 7.0
+// ============================================================
+// build.gradle — Gradle 9.3.1 + Java 21 + Maven Central Portal
+// ============================================================
+import org.gradle.api.publish.maven.tasks.GenerateMavenPom
+
 plugins {
     id 'java-library'
-    id 'maven-publish'
-    id 'signing'
-    
-    // https://plugins.gradle.org/plugin/nu.studer.credentials
-    id 'nu.studer.credentials' version '3.0'
-    // 
-    //id 'io.codearte.nexus-staging' version '0.21.0'
-    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
-    
+    id 'com.vanniktech.maven.publish' version '0.37.0'
+    id 'nu.studer.credentials'        version '3.0'
+    id 'idea'
 }
 
-def sonatypeUsername = credentials.forKey("sonatypeUser")
-def sonatypePassword = credentials.forKey("sonatypePassword")
-
-// para publicar:
-//  gradle publishToSonatype closeAndReleaseSonatypeStagingRepository sabn
-
-
-// desactivo la generación de javadoc en los proyectos que tengan la tarea
-javadoc.enabled = true
-
-compileJava {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+// ============================================================
+// Java Toolchain
+// FIX #1: withJavadocJar() y withSourcesJar() son manejados
+// automáticamente por el plugin vanniktech vía configure(JavaLibrary).
+// Dejarlos aquí genera duplicados y conflictos con Gradle 9.
+// ============================================================
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    // NO withJavadocJar() ni withSourcesJar() — los genera vanniktech
 }
+
+idea {
+    module {
+        downloadJavadoc = true
+    }
+}
+
+// ============================================================
+// Repositorios
+// ============================================================
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+
+
+// ============================================================
+// Dependencias
+// ============================================================
+dependencies {
+    // You can read more about how to add dependency here:
+    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
+    api 'org.ow2.asm:asm:9.7'
+    implementation 'org.ow2.asm:asm-util:9.7'
+    // implementation 'org.burningwave:core:12.62.5'
+    testImplementation "junit:junit:[4,)"
+}
+
+
+
 
 println "***************************************************************"
 println "SISTEMA: " + name
@@ -41,199 +68,198 @@ def getCurrentTimestamp ()
 
 println getCurrentTimestamp()
 println "---------------------------------------------------------------"
-// incrementar automáticamente el buildNumber
-task autoBuildNumber {
+
+
+// ============================================================
+// Credenciales
+//
+// Guardar UNA vez con:
+//   gradle addCredentials -PcredentialsKey=mavenCentralUsername    -PcredentialsValue=TOKEN_USER
+//   gradle addCredentials -PcredentialsKey=mavenCentralPassword    -PcredentialsValue=TOKEN_PASS
+//   gradle addCredentials -PcredentialsKey=signingKeyId            -PcredentialsValue=XXXXXXXX
+//   gradle addCredentials -PcredentialsKey=signingPassword         -PcredentialsValue=PASSPHRASE
+//   gradle addCredentials -PcredentialsKey=signingSecretKeyRingFile -PcredentialsValue=/home/user/.gnupg/secring.gpg
+//
+// FIX #2: ext["x"] = y NO es visible para providers.gradleProperty()
+// que usa vanniktech internamente. Se necesita project.setProperty().
+// ============================================================
+def injectCredential = { String key ->
+    def value = credentials.forKey(key)
+    if (value) {
+        project.setProperty(key, value)
+    }
+}
+
+injectCredential("mavenCentralUsername")
+injectCredential("mavenCentralPassword")
+injectCredential("signingKeyId")
+injectCredential("signingPassword")
+injectCredential("signingSecretKeyRingFile")
+
+// Mapear al formato que espera el plugin 'signing' de Gradle core
+if (project.hasProperty("signingKeyId")) {
+    ext["signing.keyId"]             = project.property("signingKeyId")
+}
+if (project.hasProperty("signingPassword")) {
+    ext["signing.password"]          = project.property("signingPassword")
+}
+if (project.hasProperty("signingSecretKeyRingFile")) {
+    ext["signing.secretKeyRingFile"] = project.property("signingSecretKeyRingFile")
+}
+
+// ============================================================
+// Auto-incremento del build number
+// ============================================================
+tasks.register('autoBuildNumber') {
     doFirst {
-        println "autobuild number....."
-        File propertiesFile = new File('gradle.properties')
-        def lines = propertiesFile.readLines()
-
-        PrintWriter printWriter = new PrintWriter(propertiesFile)
-        String versionNumber = ""
-        lines.each {String line ->
-            if (line.startsWith("version") ){
-                versionNumber = line.tokenize("=")[1]
-                String[] versionParts = versionNumber.tokenize(".")
-                // recalcular el build 
-                versionNumber = versionParts[0]+\
-                                '.'+versionParts[1]+\
-                                '.'+versionParts[2]+
-                                '.'+( versionParts.length==4 ? (versionParts[3].toInteger()+1).toString():"1")
-                
-                line = "version="+versionNumber
-                //                println line
+        File propsFile = file('gradle.properties')
+        if (propsFile.exists()) {
+            def props = new Properties()
+            propsFile.withInputStream { props.load(it) }
+            String versionStr = props.getProperty('version')
+            if (versionStr) {
+                def parts = versionStr.tokenize('.')
+                if (parts.size() >= 3) {
+                    int buildNum = parts.size() == 4 ? (parts[3].toInteger() + 1) : 1
+                    String newVersion = "${parts[0]}.${parts[1]}.${parts[2]}.${buildNum}"
+                    props.setProperty('version', newVersion)
+                    propsFile.withOutputStream { props.store(it, null) }
+                    println "Nueva versión: $newVersion"
+                }
             }
-            printWriter.println(line)
         }
-        printWriter.close()
-
     }
 }
-// saltar autoBuildNumber
-// agregar esta tarea para que no se incremente el valor.
-task sabn{}
 
-// agregar la dependencia solo si no se trata de un release
-if (! (project.gradle.startParameter.taskNames.join(",").toLowerCase().contains("release")
-       || project.gradle.startParameter.taskNames.join(",").toLowerCase().contains("sabn")) 
-   ) {
-    build.configure{dependsOn autoBuildNumber} 
-}
+tasks.register('sabn') {}
 
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-    // You may define additional repositories, or even remove "mavenCentral()".
-    // Read more about repositories here:
-    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
-}
-
-dependencies {
-    // You can read more about how to add dependency here:
-    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:how_to_declare_your_dependencies
-    api 'org.ow2.asm:asm:9.7'
-    implementation 'org.ow2.asm:asm-util:9.7'
-    // implementation 'org.burningwave:core:12.62.5'
-    testImplementation "junit:junit:[4,)"
-}
-
-
-task runFile(dependsOn: 'classes',type:JavaExec) {
-    
-    jvmArgs += ""
-    if (project.hasProperty('mainClass')) {
-        main = mainClass
-        classpath = sourceSets.main.runtimeClasspath
-        standardOutput = System.out
-        errorOutput = System.err
-        //jvmArgs += "-javaagent:${project.odbogmAgentPath}"
+def taskNames = gradle.startParameter.taskNames.collect { it.toLowerCase() }
+if (!taskNames.any { it.contains("release") || it.contains("sabn") }) {
+    tasks.named('build') {
+        dependsOn 'autoBuildNumber'
     }
-    
 }
 
 
-test {
+// ============================================================
+// Tests
+//
+// FIX #5: jvmArgs con project.tddAgentPath debe estar dentro
+// de doFirst para garantizar que findAgentPath ya lo calculó.
+// El jvmArgs estático puede quedar fuera sin problema.
+// ============================================================
+tasks.named('test') {
     dependsOn 
     jvmArgs '-Djdk.attach.allowAttachSelf=true --add-opens java.base/java.lang=ALL-UNNAMED'
     
     outputs.upToDateWhen { false }
     testLogging {
-        // Make sure output from
-        // standard out or error is shown
-        // in Gradle output.
         showStandardStreams = true
- 
-        // Or we use events method:
-        // events 'standard_out', 'standard_error'
- 
-        // Or set property events:
-        // events = ['standard_out', 'standard_error']
- 
-        // Instead of string values we can
-        // use enum values:
-        // events org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT,
-        //        org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR,
+        events "passed", "skipped", "failed"
     }
 }
 
 
-jar {
-    into("META-INF/maven/$project.group/$project.name") {
-        from { generatePomFileForMavenPublication }
-        rename ".*", "pom.xml"
-    }
-    
-    into("META-INF/maven/$project.group/$project.name") {
-        File pomProperites = new File("pom.properties")
-        pomProperites.write("version:"+version+"\n")
-        pomProperites << "groupId: $project.group\n"
-        pomProperites << "artifactId: $artifactId\n"
-        
-        from("pom.properties")
-    }
-        
-}
+// ============================================================
+// Publicación en el NUEVO Maven Central Portal
+//
+// COMANDOS:
+//   gradle publishToMavenCentral sabn -x test
+//   gradle publishAndReleaseToMavenCentral sabn -x test
+// ============================================================
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
 
+    // JavaLibrary genera javadocJar y sourcesJar automáticamente
+    configure(new com.vanniktech.maven.publish.JavaLibrary(
+            new com.vanniktech.maven.publish.JavadocJar.Javadoc(),
+            true
+    ))
 
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
+    pom {
+        name = project.name
+        description = 'Java Objects EasyProxy'
 
-//create a single Jar with all dependencies - DSL 7.0
-task fatJar(type: Jar) {
-    archiveBaseName = project.name + '-all'
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
-nexusPublishing {
-    repositories {
-        //sonatype()
-        sonatype {
-            username = sonatypeUsername
-            password = sonatypePassword
+        url = 'https://github.com/mdre/tdd-agent'
+        licenses {
+            license {
+                name = 'The Apache License, Version 2.0'
+                url  = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                distribution = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+        }
+        developers {
+            developer {
+                id    = 'mdre'
+                name  = 'Marcelo D. RE'
+                email = 'marcelo.re@gmail.com'
+                url   = 'https://github.com/mdre'
+            }
+        }
+        scm {
+            url                 = 'https://github.com/mdre/tdd-agent'
+            connection          = 'scm:git:git://github.com/mdre/EasyProxy.git'
+            developerConnection = 'scm:git:ssh://github.com/mdre/EasyProxy.git'
         }
     }
 }
 
-
-publishing {
-    publications {
-        maven(MavenPublication) {
-            //artifactId = 'my-library'
-            from components.java
-            versionMapping {
-                usage('java-api') {
-                    fromResolutionOf('runtimeClasspath')
-                }
-                usage('java-runtime') {
-                    fromResolutionResult()
-                }
-            }
-            pom {
-                name = "$artifactId" 
-                packaging = 'jar'
-                // optionally artifactId can be defined here 
-                description = "$title"
-                url = 'https://github.com/mdre/EasyProxy'
-
-                // properties = [
-                //     myProp: "value",
-                //     "prop.with.dots": "anotherValue"
-                // ]
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+// ============================================================
+// Resolver versiones dinámicas en el POM publicado
+//
+// FIX #6: afterEvaluate + tasks.withType().configureEach() es
+// el patrón correcto en Gradle 9. El bloque interno de
+// tasks.matching{}.configureEach estaba anidado dentro del
+// configureEach de GenerateMavenPom, lo cual viola la regla
+// de Gradle 9 de no mutar el task graph desde dentro de una
+// acción de configuración. Se separa en su propio bloque.
+// ============================================================
+afterEvaluate {
+    tasks.withType(GenerateMavenPom).configureEach { pomTask ->
+        pomTask.doLast {
+            def resolvedVersions = [:]
+            configurations.runtimeClasspath.resolvedConfiguration
+                    .resolvedArtifacts
+                    .each { artifact ->
+                        def id = artifact.moduleVersion.id
+                        resolvedVersions["${id.group}:${id.name}"] = id.version
                     }
-                }
-                developers {
-                    developer {
-                        id = 'mdre'
-                        name = 'Marcelo D. RE'
-                        email = 'marcelo.re@gmail.com'
-                    }
-                }
-                scm {
-                    connection = 'scm:git:git://github.com/mdre/EasyProxy.git'
-                    developerConnection = 'scm:git:ssh://github.com/mdre/EasyProxy.git'
-                    url = 'https://github.com/mdre/EasyProxy'
-                }
+
+            def pomFile    = pomTask.destination
+            def pomContent = pomFile.text
+
+            resolvedVersions.each { coords, resolvedVersion ->
+                def parts = coords.split(":")
+                def grp   = parts[0]
+                def art   = parts[1]
+                pomContent = pomContent.replaceAll(
+                    "(<groupId>${grp}</groupId>\\s*<artifactId>${art}</artifactId>\\s*<version>)[^<]*(</version>)",
+                    "\$1${resolvedVersion}\$2"
+                )
             }
+            pomFile.text = pomContent
+        }
+    }
+
+    // Separado del bloque anterior — Gradle 9 no permite mutar
+    // otros tasks desde dentro de una acción de configuración
+    tasks.matching { it.name == 'generateMetadataFileForMavenPublication' }.configureEach { metadataTask ->
+        if (tasks.findByName('plainJavadocJar')) {
+            metadataTask.dependsOn('plainJavadocJar')
         }
     }
 }
 
-signing {
-    sign publishing.publications.maven
-}
-
-
-javadoc {
-    if(JavaVersion.current().isJava9Compatible()) {
-        options.addBooleanOption('html5', true)
+// ============================================================
+// Fat JAR
+// ============================================================
+tasks.register('fatJar', Jar) {
+    dependsOn 'classes'
+    archiveClassifier    = 'all'
+    duplicatesStrategy   = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+    with tasks.named('jar').get()
 }
